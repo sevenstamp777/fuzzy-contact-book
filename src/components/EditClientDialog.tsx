@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 
 const clientSchema = z.object({
   name: z
@@ -184,7 +185,8 @@ const EditClientDialog = ({
                       <Input
                         placeholder="(00) 00000-0000"
                         className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                        {...field}
+                        value={field.value}
+                        onChange={(e) => field.onChange(maskPhone(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -216,9 +218,10 @@ const EditClientDialog = ({
                     <FormLabel className="text-foreground">CPF/CNPJ *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Digite o CPF ou CNPJ"
+                        placeholder="000.000.000-00"
                         className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                        {...field}
+                        value={field.value}
+                        onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
