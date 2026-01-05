@@ -53,6 +53,119 @@ export type Database = {
         }
         Relationships: []
       }
+      insumos: {
+        Row: {
+          created_at: string
+          custo_unitario: number | null
+          fornecedor_id: string | null
+          id: string
+          nome: string
+          preco_compra: number
+          quantidade_embalagem: number
+          unidade_medida: Database["public"]["Enums"]["unidade_medida"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          nome: string
+          preco_compra?: number
+          quantidade_embalagem?: number
+          unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          nome?: string
+          preco_compra?: number
+          quantidade_embalagem?: number
+          unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_insumos: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string
+          produto_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id: string
+          produto_id: string
+          quantidade?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          produto_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_insumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_insumos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          margem_lucro: number
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          margem_lucro?: number
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          margem_lucro?: number
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -115,7 +228,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      unidade_medida: "un" | "kg" | "ml" | "m"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -242,6 +355,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      unidade_medida: ["un", "kg", "ml", "m"],
+    },
   },
 } as const
