@@ -19,9 +19,10 @@ interface Supplier {
 interface SuppliersTableProps {
   suppliers: Supplier[];
   isLoading: boolean;
+  onEdit: (supplier: Supplier) => void;
 }
 
-const SuppliersTable = ({ suppliers, isLoading }: SuppliersTableProps) => {
+const SuppliersTable = ({ suppliers, isLoading, onEdit }: SuppliersTableProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -102,6 +103,7 @@ const SuppliersTable = ({ suppliers, isLoading }: SuppliersTableProps) => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                    onClick={() => onEdit(supplier)}
                   >
                     <Pencil className="h-4 w-4" />
                     <span className="sr-only">Editar</span>

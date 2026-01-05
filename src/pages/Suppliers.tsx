@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import SuppliersTable from "@/components/SuppliersTable";
 import NewSupplierDialog from "@/components/NewSupplierDialog";
+import EditSupplierDialog from "@/components/EditSupplierDialog";
 
 interface Supplier {
   id: string;
@@ -17,6 +18,8 @@ const Suppliers = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchSuppliers = async () => {
@@ -77,6 +80,51 @@ const Suppliers = () => {
     }
   };
 
+  const handleEditSupplier = (supplier: Supplier) => {
+    setEditingSupplier(supplier);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateSupplier = async (
+    id: string,
+    data: {
+      nome_fornecedor: string;
+      nome_contato: string;
+      email: string;
+    }
+  ) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("suppliers")
+        .update({
+          nome_fornecedor: data.nome_fornecedor,
+          nome_contato: data.nome_contato,
+          email: data.email,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Fornecedor atualizado!",
+        description: `${data.nome_fornecedor} foi atualizado com sucesso.`,
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingSupplier(null);
+      await fetchSuppliers();
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar fornecedor",
+        description: "Não foi possível atualizar o fornecedor. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -109,9 +157,17 @@ const Suppliers = () => {
             </span>
           </div>
 
-          <SuppliersTable suppliers={suppliers} isLoading={isLoading} />
+          <SuppliersTable suppliers={suppliers} isLoading={isLoading} onEdit={handleEditSupplier} />
         </div>
       </main>
+
+      <EditSupplierDialog
+        supplier={editingSupplier}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={handleUpdateSupplier}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 };
