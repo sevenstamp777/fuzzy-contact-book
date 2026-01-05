@@ -11,6 +11,7 @@ import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
+import { SortDirection } from "@/components/SortableTableHead";
 
 interface Supplier {
   id: string;
@@ -33,6 +34,8 @@ const Suppliers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
 
   const fetchSuppliers = async () => {
@@ -59,16 +62,46 @@ const Suppliers = () => {
     fetchSuppliers();
   }, []);
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortKey(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedSuppliers = useMemo(() => {
+    if (!sortKey || !sortDirection) return suppliers;
+
+    return [...suppliers].sort((a, b) => {
+      const aValue = (a[sortKey as keyof Supplier] || "").toString().toLowerCase();
+      const bValue = (b[sortKey as keyof Supplier] || "").toString().toLowerCase();
+
+      if (sortDirection === "asc") {
+        return aValue.localeCompare(bValue);
+      }
+      return bValue.localeCompare(aValue);
+    });
+  }, [suppliers, sortKey, sortDirection]);
+
   const filteredSuppliers = useMemo(() => {
-    if (!searchTerm.trim()) return suppliers;
+    if (!searchTerm.trim()) return sortedSuppliers;
     const term = searchTerm.toLowerCase();
-    return suppliers.filter(
+    return sortedSuppliers.filter(
       (supplier) =>
         supplier.nome_fornecedor.toLowerCase().includes(term) ||
         supplier.nome_contato.toLowerCase().includes(term) ||
         supplier.email.toLowerCase().includes(term)
     );
-  }, [suppliers, searchTerm]);
+  }, [sortedSuppliers, searchTerm]);
 
   const totalPages = Math.ceil(filteredSuppliers.length / pageSize);
   const paginatedSuppliers = useMemo(() => {
@@ -264,6 +297,9 @@ const Suppliers = () => {
             isLoading={isLoading}
             onEdit={handleEditSupplier}
             onDelete={handleDeleteSupplier}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
           />
 
           {!isLoading && filteredSuppliers.length > 0 && (

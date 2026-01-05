@@ -4,10 +4,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import SortableTableHead, { SortDirection } from "@/components/SortableTableHead";
 
 interface Supplier {
   id: string;
@@ -21,9 +21,20 @@ interface SuppliersTableProps {
   isLoading: boolean;
   onEdit: (supplier: Supplier) => void;
   onDelete: (supplier: Supplier) => void;
+  sortKey: string | null;
+  sortDirection: SortDirection;
+  onSort: (key: string) => void;
 }
 
-const SuppliersTable = ({ suppliers, isLoading, onEdit, onDelete }: SuppliersTableProps) => {
+const SuppliersTable = ({ 
+  suppliers, 
+  isLoading, 
+  onEdit, 
+  onDelete,
+  sortKey,
+  sortDirection,
+  onSort,
+}: SuppliersTableProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -56,27 +67,36 @@ const SuppliersTable = ({ suppliers, isLoading, onEdit, onDelete }: SuppliersTab
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="font-display font-semibold text-foreground">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-primary" />
-                Nome do Fornecedor
-              </div>
-            </TableHead>
-            <TableHead className="font-display font-semibold text-foreground">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
-                Nome do Contato
-              </div>
-            </TableHead>
-            <TableHead className="font-display font-semibold text-foreground">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" />
-                Email
-              </div>
-            </TableHead>
-            <TableHead className="w-[140px] text-right font-display font-semibold text-foreground">
+            <SortableTableHead
+              sortKey="nome_fornecedor"
+              currentSortKey={sortKey}
+              currentSortDirection={sortDirection}
+              onSort={onSort}
+              icon={<Truck className="h-4 w-4" />}
+            >
+              Nome do Fornecedor
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey="nome_contato"
+              currentSortKey={sortKey}
+              currentSortDirection={sortDirection}
+              onSort={onSort}
+              icon={<User className="h-4 w-4" />}
+            >
+              Nome do Contato
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey="email"
+              currentSortKey={sortKey}
+              currentSortDirection={sortDirection}
+              onSort={onSort}
+              icon={<Mail className="h-4 w-4" />}
+            >
+              Email
+            </SortableTableHead>
+            <TableCell className="w-[140px] text-right font-display font-semibold text-foreground">
               Ações
-            </TableHead>
+            </TableCell>
           </TableRow>
         </TableHeader>
         <TableBody>

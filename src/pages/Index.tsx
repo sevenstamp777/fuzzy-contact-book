@@ -11,6 +11,7 @@ import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
+import { SortDirection } from "@/components/SortableTableHead";
 
 interface Client {
   id: string;
@@ -37,6 +38,8 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -63,17 +66,47 @@ const Index = () => {
     fetchClients();
   }, []);
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortKey(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedClients = useMemo(() => {
+    if (!sortKey || !sortDirection) return clients;
+
+    return [...clients].sort((a, b) => {
+      const aValue = (a[sortKey as keyof Client] || "").toString().toLowerCase();
+      const bValue = (b[sortKey as keyof Client] || "").toString().toLowerCase();
+
+      if (sortDirection === "asc") {
+        return aValue.localeCompare(bValue);
+      }
+      return bValue.localeCompare(aValue);
+    });
+  }, [clients, sortKey, sortDirection]);
+
   const filteredClients = useMemo(() => {
-    if (!searchTerm.trim()) return clients;
+    if (!searchTerm.trim()) return sortedClients;
     const term = searchTerm.toLowerCase();
-    return clients.filter(
+    return sortedClients.filter(
       (client) =>
         client.name.toLowerCase().includes(term) ||
         client.email.toLowerCase().includes(term) ||
         client.phone.toLowerCase().includes(term) ||
         (client.cpf_cnpj && client.cpf_cnpj.toLowerCase().includes(term))
     );
-  }, [clients, searchTerm]);
+  }, [sortedClients, searchTerm]);
 
   const totalPages = Math.ceil(filteredClients.length / pageSize);
   const paginatedClients = useMemo(() => {
@@ -289,6 +322,9 @@ const Index = () => {
             isLoading={isLoading}
             onEdit={handleEditClient}
             onDelete={handleDeleteClient}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
           />
 
           {!isLoading && filteredClients.length > 0 && (

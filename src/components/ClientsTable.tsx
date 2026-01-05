@@ -4,10 +4,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import SortableTableHead, { SortDirection } from "@/components/SortableTableHead";
 
 interface Client {
   id: string;
@@ -25,9 +25,20 @@ interface ClientsTableProps {
   isLoading: boolean;
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
+  sortKey: string | null;
+  sortDirection: SortDirection;
+  onSort: (key: string) => void;
 }
 
-const ClientsTable = ({ clients, isLoading, onEdit, onDelete }: ClientsTableProps) => {
+const ClientsTable = ({ 
+  clients, 
+  isLoading, 
+  onEdit, 
+  onDelete,
+  sortKey,
+  sortDirection,
+  onSort,
+}: ClientsTableProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -61,48 +72,71 @@ const ClientsTable = ({ clients, isLoading, onEdit, onDelete }: ClientsTableProp
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="font-display font-semibold text-foreground">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  Nome
-                </div>
-              </TableHead>
-              <TableHead className="font-display font-semibold text-foreground">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-primary" />
-                  Email
-                </div>
-              </TableHead>
-              <TableHead className="font-display font-semibold text-foreground">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-primary" />
-                  Telefone
-                </div>
-              </TableHead>
-              <TableHead className="font-display font-semibold text-foreground">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  RG
-                </div>
-              </TableHead>
-              <TableHead className="font-display font-semibold text-foreground">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  CPF/CNPJ
-                </div>
-              </TableHead>
-              <TableHead className="font-display font-semibold text-foreground">
+              <SortableTableHead
+                sortKey="name"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                icon={<Users className="h-4 w-4" />}
+              >
+                Nome
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="email"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                icon={<Mail className="h-4 w-4" />}
+              >
+                Email
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="phone"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                icon={<Phone className="h-4 w-4" />}
+              >
+                Telefone
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="rg"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                icon={<FileText className="h-4 w-4" />}
+              >
+                RG
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="cpf_cnpj"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                icon={<FileText className="h-4 w-4" />}
+              >
+                CPF/CNPJ
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="inscricao_estadual"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+              >
                 IE
-              </TableHead>
-              <TableHead className="font-display font-semibold text-foreground">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  Endereço
-                </div>
-              </TableHead>
-              <TableHead className="w-[140px] text-right font-display font-semibold text-foreground">
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="endereco"
+                currentSortKey={sortKey}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                icon={<MapPin className="h-4 w-4" />}
+              >
+                Endereço
+              </SortableTableHead>
+              <TableCell className="w-[140px] text-right font-display font-semibold text-foreground">
                 Ações
-              </TableHead>
+              </TableCell>
             </TableRow>
           </TableHeader>
           <TableBody>
