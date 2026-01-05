@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Truck } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Truck, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -7,6 +7,10 @@ import SuppliersTable from "@/components/SuppliersTable";
 import NewSupplierDialog from "@/components/NewSupplierDialog";
 import EditSupplierDialog from "@/components/EditSupplierDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import SearchInput from "@/components/SearchInput";
+import TablePagination from "@/components/TablePagination";
+import { Button } from "@/components/ui/button";
+import { exportToCSV } from "@/lib/export";
 
 interface Supplier {
   id: string;
@@ -14,6 +18,8 @@ interface Supplier {
   nome_contato: string;
   email: string;
 }
+
+const ITEMS_PER_PAGE = 10;
 
 const Suppliers = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -24,6 +30,9 @@ const Suppliers = () => {
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
   const { toast } = useToast();
 
   const fetchSuppliers = async () => {
@@ -49,6 +58,39 @@ const Suppliers = () => {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
+  const filteredSuppliers = useMemo(() => {
+    if (!searchTerm.trim()) return suppliers;
+    const term = searchTerm.toLowerCase();
+    return suppliers.filter(
+      (supplier) =>
+        supplier.nome_fornecedor.toLowerCase().includes(term) ||
+        supplier.nome_contato.toLowerCase().includes(term) ||
+        supplier.email.toLowerCase().includes(term)
+    );
+  }, [suppliers, searchTerm]);
+
+  const totalPages = Math.ceil(filteredSuppliers.length / pageSize);
+  const paginatedSuppliers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredSuppliers.slice(start, start + pageSize);
+  }, [filteredSuppliers, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, pageSize]);
+
+  const handleExportCSV = () => {
+    exportToCSV(filteredSuppliers, "fornecedores", [
+      { key: "nome_fornecedor", label: "Nome do Fornecedor" },
+      { key: "nome_contato", label: "Nome do Contato" },
+      { key: "email", label: "Email" },
+    ]);
+    toast({
+      title: "Exportação concluída!",
+      description: `${filteredSuppliers.length} fornecedor(es) exportado(s) para CSV.`,
+    });
+  };
 
   const handleCreateSupplier = async (data: {
     nome_fornecedor: string;
@@ -180,29 +222,62 @@ const Suppliers = () => {
                 Gerencie todos os seus fornecedores em um só lugar.
               </p>
             </div>
-            <NewSupplierDialog
-              onSubmit={handleCreateSupplier}
-              isSubmitting={isSubmitting}
-            />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-2 border-border"
+                onClick={handleExportCSV}
+                disabled={filteredSuppliers.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+              <NewSupplierDialog
+                onSubmit={handleCreateSupplier}
+                isSubmitting={isSubmitting}
+              />
+            </div>
           </div>
         </div>
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <Truck className="h-4 w-4" />
-            <span>
-              {isLoading
-                ? "Carregando..."
-                : `${suppliers.length} fornecedor${suppliers.length !== 1 ? "es" : ""} cadastrado${suppliers.length !== 1 ? "s" : ""}`}
-            </span>
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Truck className="h-4 w-4" />
+              <span>
+                {isLoading
+                  ? "Carregando..."
+                  : `${filteredSuppliers.length} fornecedor${filteredSuppliers.length !== 1 ? "es" : ""} encontrado${filteredSuppliers.length !== 1 ? "s" : ""}`}
+              </span>
+            </div>
+            <div className="w-full sm:w-72">
+              <SearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Buscar por nome, contato, email..."
+              />
+            </div>
           </div>
 
           <SuppliersTable
-            suppliers={suppliers}
+            suppliers={paginatedSuppliers}
             isLoading={isLoading}
             onEdit={handleEditSupplier}
             onDelete={handleDeleteSupplier}
           />
+
+          {!isLoading && filteredSuppliers.length > 0 && (
+            <div className="mt-4">
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filteredSuppliers.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
         </div>
       </main>
 
