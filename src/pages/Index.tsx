@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Users } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Users, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -7,6 +7,10 @@ import ClientsTable from "@/components/ClientsTable";
 import NewClientDialog from "@/components/NewClientDialog";
 import EditClientDialog from "@/components/EditClientDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import SearchInput from "@/components/SearchInput";
+import TablePagination from "@/components/TablePagination";
+import { Button } from "@/components/ui/button";
+import { exportToCSV } from "@/lib/export";
 
 interface Client {
   id: string;
@@ -19,6 +23,8 @@ interface Client {
   endereco: string | null;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const Index = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +34,9 @@ const Index = () => {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -53,6 +62,44 @@ const Index = () => {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  const filteredClients = useMemo(() => {
+    if (!searchTerm.trim()) return clients;
+    const term = searchTerm.toLowerCase();
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(term) ||
+        client.email.toLowerCase().includes(term) ||
+        client.phone.toLowerCase().includes(term) ||
+        (client.cpf_cnpj && client.cpf_cnpj.toLowerCase().includes(term))
+    );
+  }, [clients, searchTerm]);
+
+  const totalPages = Math.ceil(filteredClients.length / pageSize);
+  const paginatedClients = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredClients.slice(start, start + pageSize);
+  }, [filteredClients, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, pageSize]);
+
+  const handleExportCSV = () => {
+    exportToCSV(filteredClients, "clientes", [
+      { key: "name", label: "Nome" },
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Telefone" },
+      { key: "rg", label: "RG" },
+      { key: "cpf_cnpj", label: "CPF/CNPJ" },
+      { key: "inscricao_estadual", label: "IE" },
+      { key: "endereco", label: "Endereço" },
+    ]);
+    toast({
+      title: "Exportação concluída!",
+      description: `${filteredClients.length} cliente(s) exportado(s) para CSV.`,
+    });
+  };
 
   const handleCreateClient = async (data: {
     name: string;
@@ -200,29 +247,62 @@ const Index = () => {
                 Gerencie todos os seus clientes em um só lugar.
               </p>
             </div>
-            <NewClientDialog
-              onSubmit={handleCreateClient}
-              isSubmitting={isSubmitting}
-            />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-2 border-border"
+                onClick={handleExportCSV}
+                disabled={filteredClients.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+              <NewClientDialog
+                onSubmit={handleCreateClient}
+                isSubmitting={isSubmitting}
+              />
+            </div>
           </div>
         </div>
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>
-              {isLoading
-                ? "Carregando..."
-                : `${clients.length} cliente${clients.length !== 1 ? "s" : ""} cadastrado${clients.length !== 1 ? "s" : ""}`}
-            </span>
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>
+                {isLoading
+                  ? "Carregando..."
+                  : `${filteredClients.length} cliente${filteredClients.length !== 1 ? "s" : ""} encontrado${filteredClients.length !== 1 ? "s" : ""}`}
+              </span>
+            </div>
+            <div className="w-full sm:w-72">
+              <SearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Buscar por nome, email, telefone..."
+              />
+            </div>
           </div>
 
           <ClientsTable
-            clients={clients}
+            clients={paginatedClients}
             isLoading={isLoading}
             onEdit={handleEditClient}
             onDelete={handleDeleteClient}
           />
+
+          {!isLoading && filteredClients.length > 0 && (
+            <div className="mt-4">
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filteredClients.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
         </div>
       </main>
 
