@@ -20,9 +20,10 @@ interface SuppliersTableProps {
   suppliers: Supplier[];
   isLoading: boolean;
   onEdit: (supplier: Supplier) => void;
+  onDelete: (supplier: Supplier) => void;
 }
 
-const SuppliersTable = ({ suppliers, isLoading, onEdit }: SuppliersTableProps) => {
+const SuppliersTable = ({ suppliers, isLoading, onEdit, onDelete }: SuppliersTableProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -112,6 +113,7 @@ const SuppliersTable = ({ suppliers, isLoading, onEdit }: SuppliersTableProps) =
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onDelete(supplier)}
                   >
                     <Trash2 className="h-4 w-4" />
                     <span className="sr-only">Remover</span>
