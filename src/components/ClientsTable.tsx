@@ -24,9 +24,10 @@ interface ClientsTableProps {
   clients: Client[];
   isLoading: boolean;
   onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
 }
 
-const ClientsTable = ({ clients, isLoading, onEdit }: ClientsTableProps) => {
+const ClientsTable = ({ clients, isLoading, onEdit, onDelete }: ClientsTableProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -150,6 +151,7 @@ const ClientsTable = ({ clients, isLoading, onEdit }: ClientsTableProps) => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => onDelete(client)}
                     >
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Remover</span>

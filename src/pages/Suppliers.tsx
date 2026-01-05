@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import SuppliersTable from "@/components/SuppliersTable";
 import NewSupplierDialog from "@/components/NewSupplierDialog";
 import EditSupplierDialog from "@/components/EditSupplierDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 interface Supplier {
   id: string;
@@ -20,6 +21,9 @@ const Suppliers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const fetchSuppliers = async () => {
@@ -125,6 +129,42 @@ const Suppliers = () => {
     }
   };
 
+  const handleDeleteSupplier = (supplier: Supplier) => {
+    setDeletingSupplier(supplier);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingSupplier) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("suppliers")
+        .delete()
+        .eq("id", deletingSupplier.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Fornecedor removido!",
+        description: `${deletingSupplier.nome_fornecedor} foi removido com sucesso.`,
+      });
+
+      setIsDeleteDialogOpen(false);
+      setDeletingSupplier(null);
+      await fetchSuppliers();
+    } catch (error) {
+      toast({
+        title: "Erro ao remover fornecedor",
+        description: "Não foi possível remover o fornecedor. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -157,7 +197,12 @@ const Suppliers = () => {
             </span>
           </div>
 
-          <SuppliersTable suppliers={suppliers} isLoading={isLoading} onEdit={handleEditSupplier} />
+          <SuppliersTable
+            suppliers={suppliers}
+            isLoading={isLoading}
+            onEdit={handleEditSupplier}
+            onDelete={handleDeleteSupplier}
+          />
         </div>
       </main>
 
@@ -167,6 +212,15 @@ const Suppliers = () => {
         onOpenChange={setIsEditDialogOpen}
         onSubmit={handleUpdateSupplier}
         isSubmitting={isSubmitting}
+      />
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Fornecedor"
+        description={`Tem certeza que deseja excluir o fornecedor "${deletingSupplier?.nome_fornecedor}"? Esta ação não pode ser desfeita.`}
+        isDeleting={isDeleting}
       />
     </div>
   );

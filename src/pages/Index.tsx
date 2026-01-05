@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import ClientsTable from "@/components/ClientsTable";
 import NewClientDialog from "@/components/NewClientDialog";
 import EditClientDialog from "@/components/EditClientDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 interface Client {
   id: string;
@@ -24,6 +25,9 @@ const Index = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -145,6 +149,42 @@ const Index = () => {
     }
   };
 
+  const handleDeleteClient = (client: Client) => {
+    setDeletingClient(client);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingClient) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", deletingClient.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cliente removido!",
+        description: `${deletingClient.name} foi removido com sucesso.`,
+      });
+
+      setIsDeleteDialogOpen(false);
+      setDeletingClient(null);
+      await fetchClients();
+    } catch (error) {
+      toast({
+        title: "Erro ao remover cliente",
+        description: "Não foi possível remover o cliente. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -177,7 +217,12 @@ const Index = () => {
             </span>
           </div>
 
-          <ClientsTable clients={clients} isLoading={isLoading} onEdit={handleEditClient} />
+          <ClientsTable
+            clients={clients}
+            isLoading={isLoading}
+            onEdit={handleEditClient}
+            onDelete={handleDeleteClient}
+          />
         </div>
       </main>
 
@@ -187,6 +232,15 @@ const Index = () => {
         onOpenChange={setIsEditDialogOpen}
         onSubmit={handleUpdateClient}
         isSubmitting={isSubmitting}
+      />
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Cliente"
+        description={`Tem certeza que deseja excluir o cliente "${deletingClient?.name}"? Esta ação não pode ser desfeita.`}
+        isDeleting={isDeleting}
       />
     </div>
   );
