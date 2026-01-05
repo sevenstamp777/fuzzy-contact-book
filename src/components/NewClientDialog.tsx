@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const clientSchema = z.object({
   name: z
@@ -39,6 +40,27 @@ const clientSchema = z.object({
     .trim()
     .min(1, "Telefone é obrigatório")
     .max(20, "Telefone deve ter no máximo 20 caracteres"),
+  rg: z
+    .string()
+    .trim()
+    .min(1, "RG é obrigatório")
+    .max(20, "RG deve ter no máximo 20 caracteres"),
+  cpf_cnpj: z
+    .string()
+    .trim()
+    .min(1, "CPF/CNPJ é obrigatório")
+    .max(20, "CPF/CNPJ deve ter no máximo 20 caracteres"),
+  inscricao_estadual: z
+    .string()
+    .trim()
+    .max(20, "IE deve ter no máximo 20 caracteres")
+    .optional()
+    .or(z.literal("")),
+  endereco: z
+    .string()
+    .trim()
+    .min(1, "Endereço é obrigatório")
+    .max(500, "Endereço deve ter no máximo 500 caracteres"),
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -57,6 +79,10 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
       name: "",
       email: "",
       phone: "",
+      rg: "",
+      cpf_cnpj: "",
+      inscricao_estadual: "",
+      endereco: "",
     },
   });
 
@@ -74,14 +100,13 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
           Novo Cliente
         </Button>
       </DialogTrigger>
-      <DialogContent className="animate-scale-in border-border bg-card sm:max-w-[425px]">
+      <DialogContent className="animate-scale-in border-border bg-card sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
             Cadastrar Novo Cliente
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Preencha os dados do cliente abaixo. Todos os campos são
-            obrigatórios.
+            Preencha os dados do cliente abaixo. Campos marcados com * são obrigatórios.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -89,58 +114,129 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground">Nome</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Digite o nome do cliente"
-                      className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground">Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="Digite o email do cliente"
-                      className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground">Telefone</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Digite o telefone do cliente"
-                      className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel className="text-foreground">Nome *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Digite o nome do cliente"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">Email *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@exemplo.com"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">Telefone *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="(00) 00000-0000"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="rg"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">RG *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Digite o RG"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cpf_cnpj"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">CPF/CNPJ *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Digite o CPF ou CNPJ"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="inscricao_estadual"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel className="text-foreground">Inscrição Estadual (IE)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Digite a IE (opcional)"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endereco"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel className="text-foreground">Endereço Completo *</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Rua, número, bairro, cidade, estado, CEP"
+                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20 resize-none"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <DialogFooter className="pt-4">
               <Button
                 type="button"
