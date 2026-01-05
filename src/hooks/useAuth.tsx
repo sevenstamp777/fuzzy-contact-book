@@ -59,8 +59,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  const value = {
+    user,
+    session,
+    isLoading,
+    signIn,
+    signUp,
+    signOut,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -68,8 +77,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  
+  // Return safe defaults when outside provider (during initial render or HMR)
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    return {
+      user: null,
+      session: null,
+      isLoading: true,
+      signIn: async () => ({ error: new Error("Auth not initialized") as Error | null }),
+      signUp: async () => ({ error: new Error("Auth not initialized") as Error | null }),
+      signOut: async () => {},
+    };
   }
+  
   return context;
 };
