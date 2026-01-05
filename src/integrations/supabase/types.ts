@@ -16,27 +16,66 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          cpf_cnpj: string | null
+          created_at: string
+          email: string
+          endereco: string | null
+          id: string
+          inscricao_estadual: string | null
+          name: string
+          phone: string
+          rg: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          email: string
+          endereco?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          name: string
+          phone: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string
+          endereco?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          name?: string
+          phone?: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
           created_at: string
           email: string
           id: string
-          name: string
-          phone: string
+          nome_contato: string
+          nome_fornecedor: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           email: string
           id?: string
-          name: string
-          phone: string
+          nome_contato: string
+          nome_fornecedor: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
-          name?: string
-          phone?: string
+          nome_contato?: string
+          nome_fornecedor?: string
           updated_at?: string
         }
         Relationships: []

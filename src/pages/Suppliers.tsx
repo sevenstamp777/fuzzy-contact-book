@@ -1,41 +1,37 @@
 import { useState, useEffect } from "react";
-import { Users } from "lucide-react";
+import { Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import ClientsTable from "@/components/ClientsTable";
-import NewClientDialog from "@/components/NewClientDialog";
+import SuppliersTable from "@/components/SuppliersTable";
+import NewSupplierDialog from "@/components/NewSupplierDialog";
 
-interface Client {
+interface Supplier {
   id: string;
-  name: string;
+  nome_fornecedor: string;
+  nome_contato: string;
   email: string;
-  phone: string;
-  rg: string | null;
-  cpf_cnpj: string | null;
-  inscricao_estadual: string | null;
-  endereco: string | null;
 }
 
-const Index = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+const Suppliers = () => {
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const fetchClients = async () => {
+  const fetchSuppliers = async () => {
     try {
       const { data, error } = await supabase
-        .from("clients")
-        .select("id, name, email, phone, rg, cpf_cnpj, inscricao_estadual, endereco")
+        .from("suppliers")
+        .select("id, nome_fornecedor, nome_contato, email")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setClients(data || []);
+      setSuppliers(data || []);
     } catch (error) {
       toast({
-        title: "Erro ao carregar clientes",
-        description: "Não foi possível carregar a lista de clientes.",
+        title: "Erro ao carregar fornecedores",
+        description: "Não foi possível carregar a lista de fornecedores.",
         variant: "destructive",
       });
     } finally {
@@ -44,44 +40,36 @@ const Index = () => {
   };
 
   useEffect(() => {
-    fetchClients();
+    fetchSuppliers();
   }, []);
 
-  const handleCreateClient = async (data: {
-    name: string;
+  const handleCreateSupplier = async (data: {
+    nome_fornecedor: string;
+    nome_contato: string;
     email: string;
-    phone: string;
-    rg: string;
-    cpf_cnpj: string;
-    inscricao_estadual?: string;
-    endereco: string;
   }) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("clients").insert([
+      const { error } = await supabase.from("suppliers").insert([
         {
-          name: data.name,
+          nome_fornecedor: data.nome_fornecedor,
+          nome_contato: data.nome_contato,
           email: data.email,
-          phone: data.phone,
-          rg: data.rg,
-          cpf_cnpj: data.cpf_cnpj,
-          inscricao_estadual: data.inscricao_estadual || null,
-          endereco: data.endereco,
         },
       ]);
 
       if (error) throw error;
 
       toast({
-        title: "Cliente cadastrado!",
-        description: `${data.name} foi adicionado com sucesso.`,
+        title: "Fornecedor cadastrado!",
+        description: `${data.nome_fornecedor} foi adicionado com sucesso.`,
       });
 
-      await fetchClients();
+      await fetchSuppliers();
     } catch (error) {
       toast({
-        title: "Erro ao cadastrar cliente",
-        description: "Não foi possível cadastrar o cliente. Tente novamente.",
+        title: "Erro ao cadastrar fornecedor",
+        description: "Não foi possível cadastrar o fornecedor. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -98,14 +86,14 @@ const Index = () => {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
-                Clientes
+                Fornecedores
               </h2>
               <p className="mt-1 text-muted-foreground">
-                Gerencie todos os seus clientes em um só lugar.
+                Gerencie todos os seus fornecedores em um só lugar.
               </p>
             </div>
-            <NewClientDialog
-              onSubmit={handleCreateClient}
+            <NewSupplierDialog
+              onSubmit={handleCreateSupplier}
               isSubmitting={isSubmitting}
             />
           </div>
@@ -113,19 +101,19 @@ const Index = () => {
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
           <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
+            <Truck className="h-4 w-4" />
             <span>
               {isLoading
                 ? "Carregando..."
-                : `${clients.length} cliente${clients.length !== 1 ? "s" : ""} cadastrado${clients.length !== 1 ? "s" : ""}`}
+                : `${suppliers.length} fornecedor${suppliers.length !== 1 ? "es" : ""} cadastrado${suppliers.length !== 1 ? "s" : ""}`}
             </span>
           </div>
 
-          <ClientsTable clients={clients} isLoading={isLoading} />
+          <SuppliersTable suppliers={suppliers} isLoading={isLoading} />
         </div>
       </main>
     </div>
   );
 };
 
-export default Index;
+export default Suppliers;
