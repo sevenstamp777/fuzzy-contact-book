@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Suppliers from "./pages/Suppliers";
+import Insumos from "./pages/Insumos";
+import Produtos from "./pages/Produtos";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -43,6 +45,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Suppliers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/insumos"
+              element={
+                <ProtectedRoute>
+                  <Insumos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/produtos"
+              element={
+                <ProtectedRoute>
+                  <Produtos />
                 </ProtectedRoute>
               }
             />

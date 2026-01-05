@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Truck, LayoutDashboard, LogOut, User } from "lucide-react";
+import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavLink from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,12 @@ const Header = () => {
             </NavLink>
             <NavLink to="/fornecedores" icon={<Truck className="h-4 w-4" />}>
               Fornecedores
+            </NavLink>
+            <NavLink to="/insumos" icon={<Package className="h-4 w-4" />}>
+              Insumos
+            </NavLink>
+            <NavLink to="/produtos" icon={<ShoppingBag className="h-4 w-4" />}>
+              Produtos
             </NavLink>
           </nav>
         </div>
