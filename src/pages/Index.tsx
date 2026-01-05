@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import ClientsTable from "@/components/ClientsTable";
 import NewClientDialog from "@/components/NewClientDialog";
+import EditClientDialog from "@/components/EditClientDialog";
 
 interface Client {
   id: string;
@@ -21,6 +22,8 @@ const Index = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -89,6 +92,59 @@ const Index = () => {
     }
   };
 
+  const handleEditClient = (client: Client) => {
+    setEditingClient(client);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateClient = async (
+    id: string,
+    data: {
+      name: string;
+      email: string;
+      phone: string;
+      rg: string;
+      cpf_cnpj: string;
+      inscricao_estadual?: string;
+      endereco: string;
+    }
+  ) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("clients")
+        .update({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          rg: data.rg,
+          cpf_cnpj: data.cpf_cnpj,
+          inscricao_estadual: data.inscricao_estadual || null,
+          endereco: data.endereco,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cliente atualizado!",
+        description: `${data.name} foi atualizado com sucesso.`,
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingClient(null);
+      await fetchClients();
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar cliente",
+        description: "Não foi possível atualizar o cliente. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -121,9 +177,17 @@ const Index = () => {
             </span>
           </div>
 
-          <ClientsTable clients={clients} isLoading={isLoading} />
+          <ClientsTable clients={clients} isLoading={isLoading} onEdit={handleEditClient} />
         </div>
       </main>
+
+      <EditClientDialog
+        client={editingClient}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={handleUpdateClient}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 };

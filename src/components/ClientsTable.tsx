@@ -23,9 +23,10 @@ interface Client {
 interface ClientsTableProps {
   clients: Client[];
   isLoading: boolean;
+  onEdit: (client: Client) => void;
 }
 
-const ClientsTable = ({ clients, isLoading }: ClientsTableProps) => {
+const ClientsTable = ({ clients, isLoading, onEdit }: ClientsTableProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -140,6 +141,7 @@ const ClientsTable = ({ clients, isLoading }: ClientsTableProps) => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                      onClick={() => onEdit(client)}
                     >
                       <Pencil className="h-4 w-4" />
                       <span className="sr-only">Editar</span>
