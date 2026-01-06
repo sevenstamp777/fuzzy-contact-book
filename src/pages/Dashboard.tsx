@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, AlertTriangle, Package, Factory, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface Stats {
   totalClients: number;
@@ -12,7 +15,23 @@ interface Stats {
   suppliersThisMonth: number;
 }
 
+interface Alert {
+  type: "stock" | "order" | "finance";
+  title: string;
+  description: string;
+  severity: "warning" | "error" | "info";
+  link?: string;
+}
+
+interface FinancialMetrics {
+  totalReceber: number;
+  totalPagar: number;
+  atrasadas: number;
+  saldo: number;
+}
+
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     totalClients: 0,
     totalSuppliers: 0,
@@ -21,13 +40,22 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState<{ name: string; clientes: number; fornecedores: number }[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [financialMetrics, setFinancialMetrics] = useState<FinancialMetrics>({
+    totalReceber: 0,
+    totalPagar: 0,
+    atrasadas: 0,
+    saldo: 0,
+  });
+  const [pendingOrders, setPendingOrders] = useState(0);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
+        // Fetch basic stats
         const [clientsResult, suppliersResult, clientsMonthResult, suppliersMonthResult] = await Promise.all([
           supabase.from("clients").select("id", { count: "exact", head: true }),
           supabase.from("suppliers").select("id", { count: "exact", head: true }),
@@ -42,7 +70,86 @@ const Dashboard = () => {
           suppliersThisMonth: suppliersMonthResult.count || 0,
         });
 
-        // Generate mock monthly data for the chart
+        // Fetch alerts data
+        const alertsList: Alert[] = [];
+
+        // Low stock alerts
+        const { data: allInsumos } = await supabase
+          .from("insumos")
+          .select("id, nome, quantidade_estoque, estoque_minimo");
+
+        const lowStock = (allInsumos || []).filter(i => i.quantidade_estoque < i.estoque_minimo);
+        lowStock.forEach(insumo => {
+          alertsList.push({
+            type: "stock",
+            title: "Estoque Baixo",
+            description: `${insumo.nome}: ${insumo.quantidade_estoque} unidades (mínimo: ${insumo.estoque_minimo})`,
+            severity: insumo.quantidade_estoque <= 0 ? "error" : "warning",
+            link: "/estoque",
+          });
+        });
+
+        // Pending orders
+        const { data: pendingOrdersData, count: pendingOrdersCount } = await supabase
+          .from("ordens_producao")
+          .select("id, numero, status", { count: "exact" })
+          .in("status", ["pendente", "em_andamento"]);
+
+        setPendingOrders(pendingOrdersCount || 0);
+
+        if ((pendingOrdersCount || 0) > 0) {
+          alertsList.push({
+            type: "order",
+            title: "Ordens Pendentes",
+            description: `${pendingOrdersCount} ordens de produção aguardando`,
+            severity: "info",
+            link: "/ordens-producao",
+          });
+        }
+
+        // Financial data
+        const { data: contasData } = await supabase
+          .from("contas")
+          .select("tipo, valor, status, data_vencimento");
+
+        const today = new Date().toISOString().split("T")[0];
+        let totalReceber = 0;
+        let totalPagar = 0;
+        let atrasadas = 0;
+
+        (contasData || []).forEach(conta => {
+          if (conta.status !== "pago") {
+            if (conta.tipo === "receber") {
+              totalReceber += conta.valor;
+            } else {
+              totalPagar += conta.valor;
+            }
+            if (conta.data_vencimento < today) {
+              atrasadas += conta.valor;
+            }
+          }
+        });
+
+        setFinancialMetrics({
+          totalReceber,
+          totalPagar,
+          atrasadas,
+          saldo: totalReceber - totalPagar,
+        });
+
+        if (atrasadas > 0) {
+          alertsList.push({
+            type: "finance",
+            title: "Contas Atrasadas",
+            description: `R$ ${atrasadas.toFixed(2)} em contas vencidas`,
+            severity: "error",
+            link: "/financeiro",
+          });
+        }
+
+        setAlerts(alertsList);
+
+        // Generate monthly data for charts
         const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
         const mockData = months.map((name) => ({
           name,
@@ -50,7 +157,6 @@ const Dashboard = () => {
           fornecedores: Math.floor(Math.random() * 10) + 2,
         }));
         
-        // Set last month to actual data
         if (mockData.length > 0) {
           mockData[mockData.length - 1] = {
             name: "Este mês",
@@ -67,7 +173,7 @@ const Dashboard = () => {
       }
     };
 
-    fetchStats();
+    fetchData();
   }, []);
 
   const pieData = [
@@ -93,22 +199,35 @@ const Dashboard = () => {
       trend: "up",
     },
     {
-      title: "Novos Clientes",
-      value: stats.clientsThisMonth,
-      icon: TrendingUp,
+      title: "Ordens Pendentes",
+      value: pendingOrders,
+      icon: Factory,
       change: null,
-      changeLabel: "este mês",
+      changeLabel: "",
       trend: null,
     },
     {
-      title: "Novos Fornecedores",
-      value: stats.suppliersThisMonth,
-      icon: Calendar,
+      title: "Saldo Previsto",
+      value: `R$ ${financialMetrics.saldo.toFixed(0)}`,
+      icon: DollarSign,
       change: null,
-      changeLabel: "este mês",
-      trend: null,
+      changeLabel: "",
+      trend: financialMetrics.saldo >= 0 ? "up" : "down",
+      isMonetary: true,
     },
   ];
+
+  const alertSeverityColors = {
+    warning: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+    error: "bg-red-500/20 text-red-500 border-red-500/30",
+    info: "bg-blue-500/20 text-blue-500 border-blue-500/30",
+  };
+
+  const alertIcons = {
+    stock: Package,
+    order: Factory,
+    finance: DollarSign,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,6 +242,47 @@ const Dashboard = () => {
             Visão geral do seu negócio
           </p>
         </div>
+
+        {/* Alerts Panel */}
+        {alerts.length > 0 && (
+          <Card className="mb-8 border-yellow-500/30 bg-yellow-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                Alertas ({alerts.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {alerts.map((alert, index) => {
+                  const Icon = alertIcons[alert.type];
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-start gap-3 rounded-lg border p-3 ${alertSeverityColors[alert.severity]}`}
+                    >
+                      <Icon className="h-5 w-5 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{alert.title}</p>
+                        <p className="text-xs opacity-80 truncate">{alert.description}</p>
+                      </div>
+                      {alert.link && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={() => navigate(alert.link!)}
+                        >
+                          Ver
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -159,6 +319,40 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Financial Summary */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          <Card className="bg-green-500/10 border-green-500/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-green-500">A Receber</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-green-500">
+                R$ {financialMetrics.totalReceber.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-500/10 border-red-500/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-red-500">A Pagar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-red-500">
+                R$ {financialMetrics.totalPagar.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-yellow-500/10 border-yellow-500/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-yellow-500">Atrasadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-yellow-500">
+                R$ {financialMetrics.atrasadas.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Charts */}
