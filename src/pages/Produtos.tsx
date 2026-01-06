@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ShoppingBag, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import ProdutosTable from "@/components/ProdutosTable";
 import NewProdutoDialog from "@/components/NewProdutoDialog";
@@ -39,6 +40,7 @@ export interface Produto {
 const ITEMS_PER_PAGE = 10;
 
 const Produtos = () => {
+  const { user } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -212,6 +214,7 @@ const Produtos = () => {
           categoria: data.categoria,
           descricao: data.descricao,
           margem_lucro: data.margem_lucro,
+          user_id: user?.id,
         }])
         .select()
         .single();
