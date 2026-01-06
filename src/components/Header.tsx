@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag } from "lucide-react";
+import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag, Warehouse, Factory, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavLink from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,7 @@ const Header = () => {
               </p>
             </div>
           </div>
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             <NavLink to="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>
               Dashboard
             </NavLink>
@@ -84,8 +84,17 @@ const Header = () => {
             <NavLink to="/insumos" icon={<Package className="h-4 w-4" />}>
               Insumos
             </NavLink>
+            <NavLink to="/estoque" icon={<Warehouse className="h-4 w-4" />}>
+              Estoque
+            </NavLink>
             <NavLink to="/produtos" icon={<ShoppingBag className="h-4 w-4" />}>
               Produtos
+            </NavLink>
+            <NavLink to="/ordens-producao" icon={<Factory className="h-4 w-4" />}>
+              Produção
+            </NavLink>
+            <NavLink to="/relatorios" icon={<BarChart3 className="h-4 w-4" />}>
+              Relatórios
             </NavLink>
           </nav>
         </div>

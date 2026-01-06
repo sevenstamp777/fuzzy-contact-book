@@ -22,6 +22,8 @@ export interface Insumo {
   preco_compra: number;
   quantidade_embalagem: number;
   custo_unitario: number;
+  quantidade_estoque: number;
+  estoque_minimo: number;
   fornecedor?: { nome_fornecedor: string } | null;
 }
 
@@ -62,7 +64,7 @@ const Insumos = () => {
       const { data, error } = await supabase
         .from("insumos")
         .select(`
-          id, nome, unidade_medida, fornecedor_id, preco_compra, quantidade_embalagem, custo_unitario,
+          id, nome, unidade_medida, fornecedor_id, preco_compra, quantidade_embalagem, custo_unitario, quantidade_estoque, estoque_minimo,
           fornecedor:suppliers(nome_fornecedor)
         `)
         .order("created_at", { ascending: false });
@@ -185,6 +187,7 @@ const Insumos = () => {
     fornecedor_id: string | null;
     preco_compra: number;
     quantidade_embalagem: number;
+    estoque_minimo: number;
   }) => {
     setIsSubmitting(true);
     try {
@@ -222,6 +225,7 @@ const Insumos = () => {
       fornecedor_id: string | null;
       preco_compra: number;
       quantidade_embalagem: number;
+      estoque_minimo: number;
     }
   ) => {
     setIsSubmitting(true);
