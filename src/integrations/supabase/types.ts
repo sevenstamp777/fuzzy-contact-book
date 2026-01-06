@@ -291,6 +291,21 @@ export type Database = {
           },
         ]
       }
+      ordem_numero_sequences: {
+        Row: {
+          next_numero: number
+          user_id: string
+        }
+        Insert: {
+          next_numero?: number
+          user_id: string
+        }
+        Update: {
+          next_numero?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       ordens_producao: {
         Row: {
           created_at: string
@@ -343,6 +358,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pedido_numero_sequences: {
+        Row: {
+          next_numero: number
+          user_id: string
+        }
+        Insert: {
+          next_numero?: number
+          user_id: string
+        }
+        Update: {
+          next_numero?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       pedidos_venda: {
         Row: {
