@@ -26,6 +26,7 @@ export type Database = {
           phone: string
           rg: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           cpf_cnpj?: string | null
@@ -38,6 +39,7 @@ export type Database = {
           phone: string
           rg?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           cpf_cnpj?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           phone?: string
           rg?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -64,6 +67,7 @@ export type Database = {
           quantidade_embalagem: number
           unidade_medida: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -75,6 +79,7 @@ export type Database = {
           quantidade_embalagem?: number
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -86,6 +91,7 @@ export type Database = {
           quantidade_embalagem?: number
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -145,6 +151,7 @@ export type Database = {
           margem_lucro: number
           nome: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           categoria?: string | null
@@ -154,6 +161,7 @@ export type Database = {
           margem_lucro?: number
           nome: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           categoria?: string | null
@@ -163,6 +171,7 @@ export type Database = {
           margem_lucro?: number
           nome?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -201,6 +210,7 @@ export type Database = {
           nome_contato: string
           nome_fornecedor: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -209,6 +219,7 @@ export type Database = {
           nome_contato: string
           nome_fornecedor: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -217,6 +228,7 @@ export type Database = {
           nome_contato?: string
           nome_fornecedor?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -225,7 +237,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      owns_produto: { Args: { _produto_id: string }; Returns: boolean }
     }
     Enums: {
       unidade_medida: "un" | "kg" | "ml" | "m"

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Users, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import ClientsTable from "@/components/ClientsTable";
 import NewClientDialog from "@/components/NewClientDialog";
@@ -27,6 +28,7 @@ interface Client {
 const ITEMS_PER_PAGE = 10;
 
 const Index = () => {
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,6 +156,7 @@ const Index = () => {
           cpf_cnpj: data.cpf_cnpj,
           inscricao_estadual: data.inscricao_estadual || null,
           endereco: data.endereco,
+          user_id: user?.id,
         },
       ]);
 

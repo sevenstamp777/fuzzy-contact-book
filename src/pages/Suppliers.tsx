@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Truck, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import SuppliersTable from "@/components/SuppliersTable";
 import NewSupplierDialog from "@/components/NewSupplierDialog";
@@ -23,6 +24,7 @@ interface Supplier {
 const ITEMS_PER_PAGE = 10;
 
 const Suppliers = () => {
+  const { user } = useAuth();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,6 +139,7 @@ const Suppliers = () => {
           nome_fornecedor: data.nome_fornecedor,
           nome_contato: data.nome_contato,
           email: data.email,
+          user_id: user?.id,
         },
       ]);
 

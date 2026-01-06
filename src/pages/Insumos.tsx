@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Package, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import InsumosTable from "@/components/InsumosTable";
 import NewInsumoDialog from "@/components/NewInsumoDialog";
@@ -39,6 +40,7 @@ const UNIDADE_LABELS: Record<string, string> = {
 };
 
 const Insumos = () => {
+  const { user } = useAuth();
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -186,7 +188,7 @@ const Insumos = () => {
   }) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("insumos").insert([data]);
+      const { error } = await supabase.from("insumos").insert([{ ...data, user_id: user?.id }]);
 
       if (error) throw error;
 
