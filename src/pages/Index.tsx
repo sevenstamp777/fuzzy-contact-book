@@ -156,7 +156,6 @@ const Index = () => {
           cpf_cnpj: data.cpf_cnpj,
           inscricao_estadual: data.inscricao_estadual || null,
           endereco: data.endereco,
-          user_id: user?.id,
         },
       ]);
 

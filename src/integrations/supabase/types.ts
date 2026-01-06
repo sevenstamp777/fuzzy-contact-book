@@ -26,7 +26,7 @@ export type Database = {
           phone: string
           rg: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           cpf_cnpj?: string | null
@@ -39,7 +39,7 @@ export type Database = {
           phone: string
           rg?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Update: {
           cpf_cnpj?: string | null
@@ -52,7 +52,7 @@ export type Database = {
           phone?: string
           rg?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -142,7 +142,7 @@ export type Database = {
           quantidade_estoque: number
           unidade_medida: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -156,7 +156,7 @@ export type Database = {
           quantidade_estoque?: number
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -170,7 +170,7 @@ export type Database = {
           quantidade_estoque?: number
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -442,7 +442,7 @@ export type Database = {
           margem_lucro: number
           nome: string
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           categoria?: string | null
@@ -452,7 +452,7 @@ export type Database = {
           margem_lucro?: number
           nome: string
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Update: {
           categoria?: string | null
@@ -462,7 +462,7 @@ export type Database = {
           margem_lucro?: number
           nome?: string
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -501,7 +501,7 @@ export type Database = {
           nome_contato: string
           nome_fornecedor: string
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -510,7 +510,7 @@ export type Database = {
           nome_contato: string
           nome_fornecedor: string
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -519,7 +519,7 @@ export type Database = {
           nome_contato?: string
           nome_fornecedor?: string
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
