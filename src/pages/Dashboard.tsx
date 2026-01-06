@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, AlertTriangle, Package, Factory, DollarSign } from "lucide-react";
+import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, AlertTriangle, Package, Factory, DollarSign, ShoppingCart, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,12 @@ interface Stats {
   totalSuppliers: number;
   clientsThisMonth: number;
   suppliersThisMonth: number;
+}
+
+interface SalesMetrics {
+  faturamentoTotal: number;
+  lucroEstimado: number;
+  pedidosPendentes: number;
 }
 
 interface Alert {
@@ -46,6 +52,11 @@ const Dashboard = () => {
     totalPagar: 0,
     atrasadas: 0,
     saldo: 0,
+  });
+  const [salesMetrics, setSalesMetrics] = useState<SalesMetrics>({
+    faturamentoTotal: 0,
+    lucroEstimado: 0,
+    pedidosPendentes: 0,
   });
   const [pendingOrders, setPendingOrders] = useState(0);
 
@@ -106,6 +117,56 @@ const Dashboard = () => {
             link: "/ordens-producao",
           });
         }
+
+        // Sales metrics - fetch pedidos_venda with their items
+        const { data: pedidosData } = await supabase
+          .from("pedidos_venda")
+          .select(`
+            id, valor_total, status,
+            itens_pedido(quantidade, preco_unitario, produto_id)
+          `);
+
+        let faturamentoTotal = 0;
+        let lucroEstimado = 0;
+        let pedidosPendentes = 0;
+
+        // Get all products to calculate cost
+        const { data: produtosData } = await supabase
+          .from("produtos")
+          .select(`
+            id, margem_lucro,
+            produto_insumos(quantidade, insumo:insumos(custo_unitario))
+          `);
+
+        const produtoCustosMap = new Map<string, number>();
+        (produtosData || []).forEach(produto => {
+          const custoTotal = (produto.produto_insumos || []).reduce((sum: number, pi: { quantidade: number; insumo: { custo_unitario: number } | null }) => {
+            return sum + (pi.quantidade * (pi.insumo?.custo_unitario || 0));
+          }, 0);
+          produtoCustosMap.set(produto.id, custoTotal);
+        });
+
+        (pedidosData || []).forEach(pedido => {
+          faturamentoTotal += pedido.valor_total || 0;
+          
+          if (pedido.status === "pendente" || pedido.status === "em_andamento") {
+            pedidosPendentes++;
+          }
+
+          // Calculate estimated profit
+          (pedido.itens_pedido || []).forEach((item: { quantidade: number; preco_unitario: number; produto_id: string }) => {
+            const custoUnitario = produtoCustosMap.get(item.produto_id) || 0;
+            const receita = item.quantidade * item.preco_unitario;
+            const custo = item.quantidade * custoUnitario;
+            lucroEstimado += receita - custo;
+          });
+        });
+
+        setSalesMetrics({
+          faturamentoTotal,
+          lucroEstimado,
+          pedidosPendentes,
+        });
 
         // Financial data
         const { data: contasData } = await supabase
@@ -183,6 +244,24 @@ const Dashboard = () => {
 
   const statCards = [
     {
+      title: "Faturamento Total",
+      value: `R$ ${salesMetrics.faturamentoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      icon: ShoppingCart,
+      change: null,
+      changeLabel: "",
+      trend: "up",
+      isMonetary: true,
+    },
+    {
+      title: "Lucro Estimado",
+      value: `R$ ${salesMetrics.lucroEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      icon: Percent,
+      change: null,
+      changeLabel: "",
+      trend: salesMetrics.lucroEstimado >= 0 ? "up" : "down",
+      isMonetary: true,
+    },
+    {
       title: "Total de Clientes",
       value: stats.totalClients,
       icon: Users,
@@ -208,7 +287,7 @@ const Dashboard = () => {
     },
     {
       title: "Saldo Previsto",
-      value: `R$ ${financialMetrics.saldo.toFixed(0)}`,
+      value: `R$ ${financialMetrics.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
       change: null,
       changeLabel: "",
@@ -285,7 +364,7 @@ const Dashboard = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {statCards.map((stat, index) => (
             <Card
               key={stat.title}

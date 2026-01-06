@@ -10,6 +10,7 @@ import EditSupplierDialog from "@/components/EditSupplierDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
+import ImportCSVDialog from "@/components/ImportCSVDialog";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
@@ -125,6 +126,47 @@ const Suppliers = () => {
       title: "Exportação concluída!",
       description: `${filteredSuppliers.length} fornecedor(es) exportado(s) para CSV.`,
     });
+  };
+
+  const handleImportSuppliers = async (data: Record<string, string>[]): Promise<{ success: number; errors: string[] }> => {
+    let success = 0;
+    const errors: string[] = [];
+
+    for (const row of data) {
+      try {
+        const { error } = await supabase.from("suppliers").insert({
+          nome_fornecedor: row.nome_fornecedor?.trim() || row.nome?.trim() || "",
+          nome_contato: row.nome_contato?.trim() || row.contato?.trim() || "",
+          email: row.email?.trim() || "",
+        });
+
+        if (error) {
+          errors.push(`${row.nome_fornecedor || row.nome}: ${error.message}`);
+        } else {
+          success++;
+        }
+      } catch (err) {
+        errors.push(`${row.nome_fornecedor || row.nome}: Erro desconhecido`);
+      }
+    }
+
+    if (success > 0) {
+      await fetchSuppliers();
+    }
+
+    return { success, errors };
+  };
+
+  const supplierColumns = [
+    { key: "nome_fornecedor", label: "Nome do Fornecedor", required: true },
+    { key: "nome_contato", label: "Nome do Contato", required: true },
+    { key: "email", label: "Email", required: true },
+  ];
+
+  const templateData = {
+    nome_fornecedor: "Fornecedor ABC",
+    nome_contato: "Maria Silva",
+    email: "contato@fornecedor.com",
   };
 
   const handleCreateSupplier = async (data: {
@@ -258,7 +300,13 @@ const Suppliers = () => {
                 Gerencie todos os seus fornecedores em um só lugar.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <ImportCSVDialog
+                onImport={handleImportSuppliers}
+                columns={supplierColumns}
+                entityName="Fornecedores"
+                templateData={templateData}
+              />
               <Button
                 variant="outline"
                 className="gap-2 border-border"
