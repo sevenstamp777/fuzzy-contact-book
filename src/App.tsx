@@ -11,6 +11,8 @@ import Insumos from "./pages/Insumos";
 import Produtos from "./pages/Produtos";
 import Estoque from "./pages/Estoque";
 import OrdensProducao from "./pages/OrdensProducao";
+import PedidosVenda from "./pages/PedidosVenda";
+import Financeiro from "./pages/Financeiro";
 import Relatorios from "./pages/Relatorios";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -80,6 +82,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <OrdensProducao />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedidos"
+              element={
+                <ProtectedRoute>
+                  <PedidosVenda />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financeiro"
+              element={
+                <ProtectedRoute>
+                  <Financeiro />
                 </ProtectedRoute>
               }
             />
