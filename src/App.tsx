@@ -9,6 +9,9 @@ import Index from "./pages/Index";
 import Suppliers from "./pages/Suppliers";
 import Insumos from "./pages/Insumos";
 import Produtos from "./pages/Produtos";
+import Estoque from "./pages/Estoque";
+import OrdensProducao from "./pages/OrdensProducao";
+import Relatorios from "./pages/Relatorios";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -57,10 +60,34 @@ const App = () => (
               }
             />
             <Route
+              path="/estoque"
+              element={
+                <ProtectedRoute>
+                  <Estoque />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/produtos"
               element={
                 <ProtectedRoute>
                   <Produtos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ordens-producao"
+              element={
+                <ProtectedRoute>
+                  <OrdensProducao />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/relatorios"
+              element={
+                <ProtectedRoute>
+                  <Relatorios />
                 </ProtectedRoute>
               }
             />

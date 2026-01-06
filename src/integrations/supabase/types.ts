@@ -60,11 +60,13 @@ export type Database = {
         Row: {
           created_at: string
           custo_unitario: number | null
+          estoque_minimo: number
           fornecedor_id: string | null
           id: string
           nome: string
           preco_compra: number
           quantidade_embalagem: number
+          quantidade_estoque: number
           unidade_medida: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
           user_id: string | null
@@ -72,11 +74,13 @@ export type Database = {
         Insert: {
           created_at?: string
           custo_unitario?: number | null
+          estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
           nome: string
           preco_compra?: number
           quantidade_embalagem?: number
+          quantidade_estoque?: number
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string | null
@@ -84,11 +88,13 @@ export type Database = {
         Update: {
           created_at?: string
           custo_unitario?: number | null
+          estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
           nome?: string
           preco_compra?: number
           quantidade_embalagem?: number
+          quantidade_estoque?: number
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string | null
@@ -99,6 +105,113 @@ export type Database = {
             columns: ["fornecedor_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacoes_estoque: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string
+          observacao: string | null
+          ordem_producao_id: string | null
+          quantidade: number
+          quantidade_anterior: number
+          quantidade_posterior: number
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id: string
+          observacao?: string | null
+          ordem_producao_id?: string | null
+          quantidade: number
+          quantidade_anterior: number
+          quantidade_posterior: number
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          observacao?: string | null
+          ordem_producao_id?: string | null
+          quantidade?: number
+          quantidade_anterior?: number
+          quantidade_posterior?: number
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_movimentacoes_ordem"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_producao: {
+        Row: {
+          created_at: string
+          custo_total: number
+          data_conclusao: string | null
+          data_prevista: string | null
+          id: string
+          numero: number
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_total?: number
+          data_conclusao?: string | null
+          data_prevista?: string | null
+          id?: string
+          numero: number
+          observacao?: string | null
+          produto_id: string
+          quantidade?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_total?: number
+          data_conclusao?: string | null
+          data_prevista?: string | null
+          id?: string
+          numero?: number
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -237,6 +350,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_next_ordem_numero: { Args: { _user_id: string }; Returns: number }
       owns_produto: { Args: { _produto_id: string }; Returns: boolean }
     }
     Enums: {

@@ -36,6 +36,7 @@ const insumoSchema = z.object({
   fornecedor_id: z.string().optional(),
   preco_compra: z.coerce.number().min(0, "Preço deve ser maior ou igual a 0"),
   quantidade_embalagem: z.coerce.number().min(0.001, "Quantidade deve ser maior que 0"),
+  estoque_minimo: z.coerce.number().min(0, "Estoque mínimo deve ser maior ou igual a 0"),
 });
 
 type InsumoFormData = z.infer<typeof insumoSchema>;
@@ -47,6 +48,7 @@ interface NewInsumoDialogProps {
     fornecedor_id: string | null;
     preco_compra: number;
     quantidade_embalagem: number;
+    estoque_minimo: number;
   }) => Promise<void>;
   isSubmitting: boolean;
   suppliers: Supplier[];
@@ -63,6 +65,7 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
       fornecedor_id: undefined,
       preco_compra: 0,
       quantidade_embalagem: 1,
+      estoque_minimo: 0,
     },
   });
 
@@ -73,6 +76,7 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
       fornecedor_id: data.fornecedor_id || null,
       preco_compra: data.preco_compra,
       quantidade_embalagem: data.quantidade_embalagem,
+      estoque_minimo: data.estoque_minimo,
     });
     form.reset();
     setOpen(false);
@@ -160,13 +164,13 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="preco_compra"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preço de Compra (R$)</FormLabel>
+                    <FormLabel>Preço Compra (R$)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -186,13 +190,33 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
                 name="quantidade_embalagem"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Qtd. na Embalagem</FormLabel>
+                    <FormLabel>Qtd. Embalagem</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.001"
                         min="0.001"
                         placeholder="1"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="estoque_minimo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estoque Mín.</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0"
                         {...field}
                       />
                     </FormControl>
