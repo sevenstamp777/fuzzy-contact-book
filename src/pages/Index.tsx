@@ -10,6 +10,7 @@ import EditClientDialog from "@/components/EditClientDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
+import ImportCSVDialog from "@/components/ImportCSVDialog";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
@@ -134,6 +135,59 @@ const Index = () => {
       title: "Exportação concluída!",
       description: `${filteredClients.length} cliente(s) exportado(s) para CSV.`,
     });
+  };
+
+  const handleImportClients = async (data: Record<string, string>[]): Promise<{ success: number; errors: string[] }> => {
+    let success = 0;
+    const errors: string[] = [];
+
+    for (const row of data) {
+      try {
+        const { error } = await supabase.from("clients").insert({
+          name: row.name?.trim() || row.nome?.trim() || "",
+          email: row.email?.trim() || "",
+          phone: row.phone?.trim() || row.telefone?.trim() || "",
+          rg: row.rg?.trim() || null,
+          cpf_cnpj: row.cpf_cnpj?.trim() || row.cpf?.trim() || row.cnpj?.trim() || null,
+          inscricao_estadual: row.inscricao_estadual?.trim() || row.ie?.trim() || null,
+          endereco: row.endereco?.trim() || null,
+        });
+
+        if (error) {
+          errors.push(`${row.name || row.nome}: ${error.message}`);
+        } else {
+          success++;
+        }
+      } catch (err) {
+        errors.push(`${row.name || row.nome}: Erro desconhecido`);
+      }
+    }
+
+    if (success > 0) {
+      await fetchClients();
+    }
+
+    return { success, errors };
+  };
+
+  const clientColumns = [
+    { key: "name", label: "Nome", required: true },
+    { key: "email", label: "Email", required: true },
+    { key: "phone", label: "Telefone", required: true },
+    { key: "rg", label: "RG" },
+    { key: "cpf_cnpj", label: "CPF/CNPJ" },
+    { key: "inscricao_estadual", label: "IE" },
+    { key: "endereco", label: "Endereço" },
+  ];
+
+  const templateData = {
+    name: "João da Silva",
+    email: "joao@email.com",
+    phone: "(11) 99999-9999",
+    rg: "12.345.678-9",
+    cpf_cnpj: "123.456.789-00",
+    inscricao_estadual: "",
+    endereco: "Rua Exemplo, 123",
   };
 
   const handleCreateClient = async (data: {
@@ -282,7 +336,13 @@ const Index = () => {
                 Gerencie todos os seus clientes em um só lugar.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <ImportCSVDialog
+                onImport={handleImportClients}
+                columns={clientColumns}
+                entityName="Clientes"
+                templateData={templateData}
+              />
               <Button
                 variant="outline"
                 className="gap-2 border-border"

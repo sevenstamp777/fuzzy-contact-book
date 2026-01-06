@@ -10,6 +10,7 @@ import EditInsumoDialog from "@/components/EditInsumoDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
+import ImportCSVDialog from "@/components/ImportCSVDialog";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
@@ -181,6 +182,57 @@ const Insumos = () => {
     });
   };
 
+  const handleImportInsumos = async (data: Record<string, string>[]): Promise<{ success: number; errors: string[] }> => {
+    let success = 0;
+    const errors: string[] = [];
+
+    for (const row of data) {
+      try {
+        const precoCompra = parseFloat(row.preco_compra?.replace(",", ".") || "0");
+        const qtdEmbalagem = parseFloat(row.quantidade_embalagem?.replace(",", ".") || "1");
+        
+        const { error } = await supabase.from("insumos").insert({
+          nome: row.nome?.trim() || "",
+          unidade_medida: (row.unidade_medida?.toLowerCase() as "un" | "kg" | "ml" | "m") || "un",
+          preco_compra: precoCompra,
+          quantidade_embalagem: qtdEmbalagem || 1,
+          estoque_minimo: parseFloat(row.estoque_minimo?.replace(",", ".") || "0"),
+          fornecedor_id: null, // CSV doesn't handle relations well
+        });
+
+        if (error) {
+          errors.push(`${row.nome}: ${error.message}`);
+        } else {
+          success++;
+        }
+      } catch (err) {
+        errors.push(`${row.nome}: Erro desconhecido`);
+      }
+    }
+
+    if (success > 0) {
+      await fetchInsumos();
+    }
+
+    return { success, errors };
+  };
+
+  const insumoColumns = [
+    { key: "nome", label: "Nome", required: true },
+    { key: "unidade_medida", label: "Unidade (un/kg/ml/m)" },
+    { key: "preco_compra", label: "Preço de Compra" },
+    { key: "quantidade_embalagem", label: "Qtd. na Embalagem" },
+    { key: "estoque_minimo", label: "Estoque Mínimo" },
+  ];
+
+  const insumoTemplateData = {
+    nome: "Farinha de Trigo",
+    unidade_medida: "kg",
+    preco_compra: "25.00",
+    quantidade_embalagem: "5",
+    estoque_minimo: "10",
+  };
+
   const handleCreateInsumo = async (data: {
     nome: string;
     unidade_medida: "un" | "kg" | "ml" | "m";
@@ -307,7 +359,13 @@ const Insumos = () => {
                 Gerencie os materiais básicos para seus produtos.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <ImportCSVDialog
+                onImport={handleImportInsumos}
+                columns={insumoColumns}
+                entityName="Insumos"
+                templateData={insumoTemplateData}
+              />
               <Button
                 variant="outline"
                 className="gap-2 border-border"
