@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag, Warehouse, Factory, BarChart3, ShoppingCart, DollarSign } from "lucide-react";
+import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag, Warehouse, Factory, BarChart3, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavLink from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import ProfileDialog from "@/components/ProfileDialog";
 
 interface Profile {
@@ -24,9 +26,17 @@ interface Profile {
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const { plan } = useSubscription();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+
+  const planLabels: Record<string, string> = {
+    explorador: "Explorador",
+    impulso: "Impulso",
+    crescimento: "Crescimento",
+    dominio: "Domínio",
+  };
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -144,6 +154,16 @@ const Header = () => {
                 >
                   <User className="mr-2 h-4 w-4" />
                   Editar Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => navigate("/planos")} 
+                  className="cursor-pointer"
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span className="flex-1">Planos</span>
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {planLabels[plan]}
+                  </Badge>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
