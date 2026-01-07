@@ -223,6 +223,18 @@ const Auth = () => {
             </CardContent>
           </Tabs>
         </Card>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Ao criar uma conta, você concorda com os{" "}
+          <a href="/termos" className="text-primary hover:underline">
+            Termos de Uso
+          </a>{" "}
+          e{" "}
+          <a href="/termos" className="text-primary hover:underline">
+            Política de Privacidade
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
