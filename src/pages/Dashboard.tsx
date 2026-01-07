@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, AlertTriangle, Package, Factory, DollarSign, ShoppingCart, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import UpgradeBanner from "@/components/UpgradeBanner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -313,13 +314,18 @@ const Dashboard = () => {
       <Header />
 
       <main className="container py-8">
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-6 animate-fade-in">
           <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
             Dashboard
           </h2>
           <p className="mt-1 text-muted-foreground">
             Visão geral do seu negócio
           </p>
+        </div>
+
+        {/* Upgrade Banner */}
+        <div className="mb-8 animate-fade-in">
+          <UpgradeBanner />
         </div>
 
         {/* Alerts Panel */}

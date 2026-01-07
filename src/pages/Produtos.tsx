@@ -378,6 +378,7 @@ const Produtos = () => {
                 onSubmit={handleCreateProduto}
                 isSubmitting={isSubmitting}
                 insumos={insumos}
+                produtosCount={produtos.length}
               />
             </div>
           </div>

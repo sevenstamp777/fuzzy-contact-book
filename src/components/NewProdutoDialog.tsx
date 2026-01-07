@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Insumo } from "@/pages/Produtos";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSubscription } from "@/hooks/useSubscription";
+import PlanLimitAlert from "@/components/PlanLimitAlert";
 
 const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório").max(100, "Nome deve ter no máximo 100 caracteres"),
@@ -55,6 +57,7 @@ interface NewProdutoDialogProps {
   }) => Promise<void>;
   isSubmitting: boolean;
   insumos: Insumo[];
+  produtosCount: number;
 }
 
 const formatCurrency = (value: number) => {
@@ -64,8 +67,10 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-const NewProdutoDialog = ({ onSubmit, isSubmitting, insumos }: NewProdutoDialogProps) => {
+const NewProdutoDialog = ({ onSubmit, isSubmitting, insumos, produtosCount }: NewProdutoDialogProps) => {
   const [open, setOpen] = useState(false);
+  const [showLimitAlert, setShowLimitAlert] = useState(false);
+  const { canCreateProduto } = useSubscription();
 
   const form = useForm<ProdutoFormData>({
     resolver: zodResolver(produtoSchema),
@@ -109,14 +114,29 @@ const NewProdutoDialog = ({ onSubmit, isSubmitting, insumos }: NewProdutoDialogP
     setOpen(false);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && !canCreateProduto(produtosCount)) {
+      setShowLimitAlert(true);
+      return;
+    }
+    setOpen(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2 gradient-primary shadow-glow hover:shadow-glow-lg transition-all duration-300">
-          <Plus className="h-4 w-4" />
-          Novo Produto
-        </Button>
-      </DialogTrigger>
+    <>
+      <PlanLimitAlert 
+        open={showLimitAlert} 
+        onOpenChange={setShowLimitAlert}
+        resourceType="produtos"
+        currentCount={produtosCount}
+      />
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button className="gap-2 gradient-primary shadow-glow hover:shadow-glow-lg transition-all duration-300">
+            <Plus className="h-4 w-4" />
+            Novo Produto
+          </Button>
+        </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Cadastrar Novo Produto</DialogTitle>
@@ -323,7 +343,8 @@ const NewProdutoDialog = ({ onSubmit, isSubmitting, insumos }: NewProdutoDialogP
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 };
 
