@@ -293,15 +293,21 @@ export type Database = {
       }
       ordem_numero_sequences: {
         Row: {
+          created_at: string
           next_numero: number
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           next_numero?: number
+          updated_at?: string
           user_id: string
         }
         Update: {
+          created_at?: string
           next_numero?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -361,15 +367,21 @@ export type Database = {
       }
       pedido_numero_sequences: {
         Row: {
+          created_at: string
           next_numero: number
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           next_numero?: number
+          updated_at?: string
           user_id: string
         }
         Update: {
+          created_at?: string
           next_numero?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -558,8 +570,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_next_ordem_numero: { Args: { _user_id: string }; Returns: number }
-      get_next_pedido_numero: { Args: { _user_id: string }; Returns: number }
+      get_next_ordem_numero: { Args: never; Returns: number }
+      get_next_pedido_numero: { Args: never; Returns: number }
       owns_pedido: { Args: { _pedido_id: string }; Returns: boolean }
       owns_produto: { Args: { _produto_id: string }; Returns: boolean }
     }

@@ -190,7 +190,7 @@ const PedidosVenda = () => {
 
     try {
       // Get next numero
-      const { data: numeroData } = await supabase.rpc("get_next_pedido_numero", { _user_id: user.id });
+      const { data: numeroData } = await supabase.rpc("get_next_pedido_numero");
       
       // Create pedido
       const { data: pedido, error: pedidoError } = await supabase
@@ -258,7 +258,7 @@ const PedidosVenda = () => {
 
       // Create ordem de produção for each item
       for (const item of itensPedido) {
-        const { data: numeroData } = await supabase.rpc("get_next_ordem_numero", { _user_id: user.id });
+        const { data: numeroData } = await supabase.rpc("get_next_ordem_numero");
         
         // Calculate cost
         const { data: produtoInsumos } = await supabase
