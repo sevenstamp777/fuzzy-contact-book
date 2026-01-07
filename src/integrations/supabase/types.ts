@@ -535,6 +535,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           created_at: string
@@ -570,12 +609,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_produto: { Args: never; Returns: boolean }
       get_next_ordem_numero: { Args: never; Returns: number }
       get_next_pedido_numero: { Args: never; Returns: number }
+      get_plan_limits: {
+        Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
+        Returns: Json
+      }
+      get_user_subscription: {
+        Args: never
+        Returns: {
+          current_period_end: string
+          limits: Json
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: string
+        }[]
+      }
       owns_pedido: { Args: { _pedido_id: string }; Returns: boolean }
       owns_produto: { Args: { _produto_id: string }; Returns: boolean }
     }
     Enums: {
+      subscription_plan: "explorador" | "impulso" | "crescimento" | "dominio"
       unidade_medida: "un" | "kg" | "ml" | "m"
     }
     CompositeTypes: {
@@ -704,6 +758,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      subscription_plan: ["explorador", "impulso", "crescimento", "dominio"],
       unidade_medida: ["un", "kg", "ml", "m"],
     },
   },
