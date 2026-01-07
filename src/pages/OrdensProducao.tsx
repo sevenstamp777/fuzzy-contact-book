@@ -219,7 +219,7 @@ const OrdensProducao = () => {
 
     try {
       // Obter próximo número
-      const { data: numeroData } = await supabase.rpc("get_next_ordem_numero", { _user_id: user.id });
+      const { data: numeroData } = await supabase.rpc("get_next_ordem_numero");
       const numero = numeroData || 1;
 
       const custoTotal = calcularCustoTotal(produto, quantidade);
