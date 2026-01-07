@@ -3,6 +3,7 @@ import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, Alert
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import UpgradeBanner from "@/components/UpgradeBanner";
+import OnboardingGuide from "@/components/OnboardingGuide";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -321,6 +322,11 @@ const Dashboard = () => {
           <p className="mt-1 text-muted-foreground">
             Visão geral do seu negócio
           </p>
+        </div>
+
+        {/* Onboarding Guide for New Users */}
+        <div className="mb-8 animate-fade-in">
+          <OnboardingGuide />
         </div>
 
         {/* Upgrade Banner */}
