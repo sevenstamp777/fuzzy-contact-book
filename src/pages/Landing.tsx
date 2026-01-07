@@ -21,13 +21,7 @@ import { PLANS, formatPrice } from "@/lib/subscription";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
-
-  // If user is logged in, redirect to dashboard
-  if (user && !isLoading) {
-    navigate("/dashboard");
-    return null;
-  }
+  const { user } = useAuth();
 
   const features = [
     {
@@ -90,12 +84,20 @@ const Landing = () => {
             <span className="font-display text-xl font-bold text-foreground">ClientFlow</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => navigate("/auth")}>
-              Entrar
-            </Button>
-            <Button className="gradient-primary shadow-glow" onClick={() => navigate("/auth")}>
-              Começar Grátis
-            </Button>
+            {user ? (
+              <Button className="gradient-primary shadow-glow" onClick={() => navigate("/dashboard")}>
+                Ir para Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                  Entrar
+                </Button>
+                <Button className="gradient-primary shadow-glow" onClick={() => navigate("/auth")}>
+                  Começar Grátis
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
