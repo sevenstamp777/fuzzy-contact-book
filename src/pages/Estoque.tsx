@@ -92,21 +92,27 @@ const Estoque = () => {
   const { toast } = useToast();
 
   const fetchInsumos = async () => {
+    if (!user?.id) return;
+    
     const { data, error } = await supabase
       .from("insumos")
       .select("id, nome, unidade_medida, quantidade_estoque, estoque_minimo")
+      .eq("user_id", user.id)
       .order("nome");
 
     if (!error) setInsumos(data || []);
   };
 
   const fetchMovimentacoes = async () => {
+    if (!user?.id) return;
+
     const { data, error } = await supabase
       .from("movimentacoes_estoque")
       .select(`
         id, insumo_id, tipo, quantidade, quantidade_anterior, quantidade_posterior, observacao, created_at,
         insumo:insumos(nome)
       `)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(100);
 

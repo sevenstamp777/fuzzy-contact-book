@@ -76,6 +76,11 @@ const Financeiro = () => {
   const [observacao, setObservacao] = useState("");
 
   const fetchContas = async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("contas")
       .select(`
@@ -83,6 +88,7 @@ const Financeiro = () => {
         suppliers:fornecedor_id (nome_fornecedor),
         clients:cliente_id (name)
       `)
+      .eq("user_id", user.id)
       .order("data_vencimento", { ascending: true });
 
     if (error) {
@@ -101,12 +107,14 @@ const Financeiro = () => {
   };
 
   const fetchSuppliers = async () => {
-    const { data } = await supabase.from("suppliers").select("id, nome_fornecedor").order("nome_fornecedor");
+    if (!user?.id) return;
+    const { data } = await supabase.from("suppliers").select("id, nome_fornecedor").eq("user_id", user.id).order("nome_fornecedor");
     setSuppliers(data || []);
   };
 
   const fetchClients = async () => {
-    const { data } = await supabase.from("clients").select("id, name").order("name");
+    if (!user?.id) return;
+    const { data } = await supabase.from("clients").select("id, name").eq("user_id", user.id).order("name");
     setClients(data || []);
   };
 

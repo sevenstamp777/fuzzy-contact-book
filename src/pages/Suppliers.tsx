@@ -3,6 +3,7 @@ import { Truck, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/hooks/useDemo";
 import Header from "@/components/Header";
 import SuppliersTable from "@/components/SuppliersTable";
 import NewSupplierDialog from "@/components/NewSupplierDialog";
@@ -11,6 +12,8 @@ import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import ImportCSVDialog from "@/components/ImportCSVDialog";
+import DemoBanner from "@/components/DemoBanner";
+import LoadDemoPrompt from "@/components/LoadDemoPrompt";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
@@ -23,9 +26,11 @@ interface Supplier {
 }
 
 const ITEMS_PER_PAGE = 10;
+const MAX_IMPORT_ROWS = 200;
 
 const Suppliers = () => {
   const { user } = useAuth();
+  const { isDemoMode, hasDemoData, isLoadingDemo, loadDemoData, clearDemoData, checkDemoStatus } = useDemo();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,10 +47,17 @@ const Suppliers = () => {
   const { toast } = useToast();
 
   const fetchSuppliers = async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      // Defense in depth: filter by user_id even though RLS handles it
       const { data, error } = await supabase
         .from("suppliers")
         .select("id, nome_fornecedor, nome_contato, email")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -62,8 +74,10 @@ const Suppliers = () => {
   };
 
   useEffect(() => {
-    fetchSuppliers();
-  }, []);
+    if (user?.id) {
+      fetchSuppliers();
+    }
+  }, [user?.id]);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -85,8 +99,8 @@ const Suppliers = () => {
     if (!sortKey || !sortDirection) return suppliers;
 
     return [...suppliers].sort((a, b) => {
-      const aValue = (a[sortKey as keyof Supplier] || "").toString().toLowerCase();
-      const bValue = (b[sortKey as keyof Supplier] || "").toString().toLowerCase();
+      const aValue = (a[sortKey as keyof Supplier] ?? "").toString().toLowerCase();
+      const bValue = (b[sortKey as keyof Supplier] ?? "").toString().toLowerCase();
 
       if (sortDirection === "asc") {
         return aValue.localeCompare(bValue);
@@ -95,14 +109,15 @@ const Suppliers = () => {
     });
   }, [suppliers, sortKey, sortDirection]);
 
+  // Safe search with null checks on all fields
   const filteredSuppliers = useMemo(() => {
     if (!searchTerm.trim()) return sortedSuppliers;
     const term = searchTerm.toLowerCase();
     return sortedSuppliers.filter(
       (supplier) =>
-        supplier.nome_fornecedor.toLowerCase().includes(term) ||
-        supplier.nome_contato.toLowerCase().includes(term) ||
-        supplier.email.toLowerCase().includes(term)
+        (supplier.nome_fornecedor ?? "").toLowerCase().includes(term) ||
+        (supplier.nome_contato ?? "").toLowerCase().includes(term) ||
+        (supplier.email ?? "").toLowerCase().includes(term)
     );
   }, [sortedSuppliers, searchTerm]);
 
@@ -129,32 +144,52 @@ const Suppliers = () => {
   };
 
   const handleImportSuppliers = async (data: Record<string, string>[]): Promise<{ success: number; errors: string[] }> => {
-    let success = 0;
     const errors: string[] = [];
 
-    for (const row of data) {
-      try {
-        const { error } = await supabase.from("suppliers").insert({
-          nome_fornecedor: row.nome_fornecedor?.trim() || row.nome?.trim() || "",
-          nome_contato: row.nome_contato?.trim() || row.contato?.trim() || "",
-          email: row.email?.trim() || "",
-        });
+    // Limit check: max rows per import
+    if (data.length > MAX_IMPORT_ROWS) {
+      errors.push(`Limite máximo de ${MAX_IMPORT_ROWS} registros por importação. Você enviou ${data.length}.`);
+      return { success: 0, errors };
+    }
 
-        if (error) {
-          errors.push(`${row.nome_fornecedor || row.nome}: ${error.message}`);
-        } else {
-          success++;
-        }
-      } catch (err) {
-        errors.push(`${row.nome_fornecedor || row.nome}: Erro desconhecido`);
+    // Validate and prepare batch
+    const validRows: Record<string, string>[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const nome = row.nome_fornecedor?.trim() || row.nome?.trim();
+      if (!nome || nome.length < 2) {
+        errors.push(`Linha ${i + 1}: Nome do fornecedor é obrigatório (mínimo 2 caracteres)`);
+      } else {
+        validRows.push(row);
       }
     }
 
-    if (success > 0) {
-      await fetchSuppliers();
+    if (validRows.length === 0) {
+      return { success: 0, errors };
     }
 
-    return { success, errors };
+    // Prepare batch insert
+    const suppliersToInsert = validRows.map(row => ({
+      nome_fornecedor: (row.nome_fornecedor?.trim() || row.nome?.trim() || "").substring(0, 255),
+      nome_contato: (row.nome_contato?.trim() || row.contato?.trim() || "").substring(0, 255),
+      email: (row.email?.trim() || "").substring(0, 255),
+      user_id: user?.id,
+    }));
+
+    try {
+      const { error } = await supabase.from("suppliers").insert(suppliersToInsert);
+
+      if (error) {
+        errors.push(`Erro ao inserir: ${error.message}`);
+        return { success: 0, errors };
+      }
+
+      await fetchSuppliers();
+      return { success: suppliersToInsert.length, errors };
+    } catch (err) {
+      errors.push("Erro desconhecido ao inserir fornecedores");
+      return { success: 0, errors };
+    }
   };
 
   const supplierColumns = [
@@ -219,6 +254,7 @@ const Suppliers = () => {
   ) => {
     setIsSubmitting(true);
     try {
+      // Defense in depth: ensure we're updating our own supplier
       const { error } = await supabase
         .from("suppliers")
         .update({
@@ -226,7 +262,8 @@ const Suppliers = () => {
           nome_contato: data.nome_contato,
           email: data.email,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user?.id);
 
       if (error) throw error;
 
@@ -259,10 +296,12 @@ const Suppliers = () => {
 
     setIsDeleting(true);
     try {
+      // Defense in depth: ensure we're deleting our own supplier
       const { error } = await supabase
         .from("suppliers")
         .delete()
-        .eq("id", deletingSupplier.id);
+        .eq("id", deletingSupplier.id)
+        .eq("user_id", user?.id);
 
       if (error) throw error;
 
@@ -323,6 +362,31 @@ const Suppliers = () => {
             </div>
           </div>
         </div>
+
+        {/* Demo mode banner */}
+        {isDemoMode && (
+          <DemoBanner 
+            onClearDemo={async () => {
+              await clearDemoData();
+              await fetchSuppliers();
+              await checkDemoStatus();
+            }} 
+            isClearing={isLoadingDemo} 
+          />
+        )}
+
+        {/* Load demo prompt for empty state */}
+        {!isLoading && suppliers.length === 0 && !hasDemoData && (
+          <LoadDemoPrompt 
+            onLoadDemo={async () => {
+              await loadDemoData();
+              await fetchSuppliers();
+              await checkDemoStatus();
+            }}
+            isLoading={isLoadingDemo}
+            entityName="fornecedores, clientes, insumos e produtos"
+          />
+        )}
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

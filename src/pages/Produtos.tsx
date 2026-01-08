@@ -3,6 +3,7 @@ import { ShoppingBag, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/hooks/useDemo";
 import Header from "@/components/Header";
 import ProdutosTable from "@/components/ProdutosTable";
 import NewProdutoDialog from "@/components/NewProdutoDialog";
@@ -10,6 +11,8 @@ import EditProdutoDialog from "@/components/EditProdutoDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
+import DemoBanner from "@/components/DemoBanner";
+import LoadDemoPrompt from "@/components/LoadDemoPrompt";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
@@ -41,6 +44,7 @@ const ITEMS_PER_PAGE = 10;
 
 const Produtos = () => {
   const { user } = useAuth();
+  const { isDemoMode, hasDemoData, isLoadingDemo, loadDemoData, clearDemoData, checkDemoStatus } = useDemo();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,13 +62,20 @@ const Produtos = () => {
   const { toast } = useToast();
 
   const fetchProdutos = async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      // Defense in depth: filter by user_id even though RLS handles it
       const { data, error } = await supabase
         .from("produtos")
         .select(`
           id, nome, categoria, descricao, margem_lucro,
           produto_insumos(id, insumo_id, quantidade, insumo:insumos(id, nome, unidade_medida, custo_unitario))
         `)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -81,17 +92,22 @@ const Produtos = () => {
   };
 
   const fetchInsumos = async () => {
+    if (!user?.id) return;
+
     const { data } = await supabase
       .from("insumos")
       .select("id, nome, unidade_medida, custo_unitario")
+      .eq("user_id", user.id)
       .order("nome");
     setInsumos(data || []);
   };
 
   useEffect(() => {
-    fetchProdutos();
-    fetchInsumos();
-  }, []);
+    if (user?.id) {
+      fetchProdutos();
+      fetchInsumos();
+    }
+  }, [user?.id]);
 
   const calcularCustoTotal = (produto: Produto) => {
     if (!produto.produto_insumos) return 0;
@@ -143,8 +159,8 @@ const Produtos = () => {
         bValue = Number(b.margem_lucro);
         return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
       } else {
-        aValue = (a[sortKey as keyof Produto] || "").toString().toLowerCase();
-        bValue = (b[sortKey as keyof Produto] || "").toString().toLowerCase();
+        aValue = (a[sortKey as keyof Produto] ?? "").toString().toLowerCase();
+        bValue = (b[sortKey as keyof Produto] ?? "").toString().toLowerCase();
       }
 
       if (sortDirection === "asc") {
@@ -154,14 +170,15 @@ const Produtos = () => {
     });
   }, [produtos, sortKey, sortDirection]);
 
+  // Safe search with null checks on all fields
   const filteredProdutos = useMemo(() => {
     if (!searchTerm.trim()) return sortedProdutos;
     const term = searchTerm.toLowerCase();
     return sortedProdutos.filter(
       (produto) =>
-        produto.nome.toLowerCase().includes(term) ||
-        produto.categoria?.toLowerCase().includes(term) ||
-        produto.descricao?.toLowerCase().includes(term)
+        (produto.nome ?? "").toLowerCase().includes(term) ||
+        (produto.categoria ?? "").toLowerCase().includes(term) ||
+        (produto.descricao ?? "").toLowerCase().includes(term)
     );
   }, [sortedProdutos, searchTerm]);
 
@@ -267,6 +284,7 @@ const Produtos = () => {
   ) => {
     setIsSubmitting(true);
     try {
+      // Defense in depth: ensure we're updating our own produto
       const { error: produtoError } = await supabase
         .from("produtos")
         .update({
@@ -275,7 +293,8 @@ const Produtos = () => {
           descricao: data.descricao,
           margem_lucro: data.margem_lucro,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user?.id);
 
       if (produtoError) throw produtoError;
 
@@ -323,10 +342,12 @@ const Produtos = () => {
 
     setIsDeleting(true);
     try {
+      // Defense in depth: ensure we're deleting our own produto
       const { error } = await supabase
         .from("produtos")
         .delete()
-        .eq("id", deletingProduto.id);
+        .eq("id", deletingProduto.id)
+        .eq("user_id", user?.id);
 
       if (error) throw error;
 
@@ -383,6 +404,31 @@ const Produtos = () => {
             </div>
           </div>
         </div>
+
+        {/* Demo mode banner */}
+        {isDemoMode && (
+          <DemoBanner 
+            onClearDemo={async () => {
+              await clearDemoData();
+              await fetchProdutos();
+              await checkDemoStatus();
+            }} 
+            isClearing={isLoadingDemo} 
+          />
+        )}
+
+        {/* Load demo prompt for empty state */}
+        {!isLoading && produtos.length === 0 && !hasDemoData && (
+          <LoadDemoPrompt 
+            onLoadDemo={async () => {
+              await loadDemoData();
+              await fetchProdutos();
+              await checkDemoStatus();
+            }}
+            isLoading={isLoadingDemo}
+            entityName="produtos, insumos, clientes e fornecedores"
+          />
+        )}
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

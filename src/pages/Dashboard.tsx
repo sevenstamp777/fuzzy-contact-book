@@ -64,16 +64,22 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        // Fetch basic stats
+        // Fetch basic stats - defense in depth: filter by user_id even though RLS handles it
         const [clientsResult, suppliersResult, clientsMonthResult, suppliersMonthResult] = await Promise.all([
-          supabase.from("clients").select("id", { count: "exact", head: true }),
-          supabase.from("suppliers").select("id", { count: "exact", head: true }),
-          supabase.from("clients").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth),
-          supabase.from("suppliers").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth),
+          supabase.from("clients").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("suppliers").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("clients").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", startOfMonth),
+          supabase.from("suppliers").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", startOfMonth),
         ]);
 
         setStats({
@@ -86,10 +92,11 @@ const Dashboard = () => {
         // Fetch alerts data
         const alertsList: Alert[] = [];
 
-        // Low stock alerts
+        // Low stock alerts - defense in depth
         const { data: allInsumos } = await supabase
           .from("insumos")
-          .select("id, nome, quantidade_estoque, estoque_minimo");
+          .select("id, nome, quantidade_estoque, estoque_minimo")
+          .eq("user_id", user.id);
 
         const lowStock = (allInsumos || []).filter(i => i.quantidade_estoque < i.estoque_minimo);
         lowStock.forEach(insumo => {
@@ -102,10 +109,11 @@ const Dashboard = () => {
           });
         });
 
-        // Pending orders
+        // Pending orders - defense in depth
         const { data: pendingOrdersData, count: pendingOrdersCount } = await supabase
           .from("ordens_producao")
           .select("id, numero, status", { count: "exact" })
+          .eq("user_id", user.id)
           .in("status", ["pendente", "em_andamento"]);
 
         setPendingOrders(pendingOrdersCount || 0);
@@ -120,25 +128,27 @@ const Dashboard = () => {
           });
         }
 
-        // Sales metrics - fetch pedidos_venda with their items
+        // Sales metrics - fetch pedidos_venda with their items - defense in depth
         const { data: pedidosData } = await supabase
           .from("pedidos_venda")
           .select(`
             id, valor_total, status,
             itens_pedido(quantidade, preco_unitario, produto_id)
-          `);
+          `)
+          .eq("user_id", user.id);
 
         let faturamentoTotal = 0;
         let lucroEstimado = 0;
         let pedidosPendentes = 0;
 
-        // Get all products to calculate cost
+        // Get all products to calculate cost - defense in depth
         const { data: produtosData } = await supabase
           .from("produtos")
           .select(`
             id, margem_lucro,
             produto_insumos(quantidade, insumo:insumos(custo_unitario))
-          `);
+          `)
+          .eq("user_id", user.id);
 
         const produtoCustosMap = new Map<string, number>();
         (produtosData || []).forEach(produto => {
@@ -170,10 +180,11 @@ const Dashboard = () => {
           pedidosPendentes,
         });
 
-        // Financial data
+        // Financial data - defense in depth
         const { data: contasData } = await supabase
           .from("contas")
-          .select("tipo, valor, status, data_vencimento");
+          .select("tipo, valor, status, data_vencimento")
+          .eq("user_id", user.id);
 
         const today = new Date().toISOString().split("T")[0];
         let totalReceber = 0;
