@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +22,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
+import { fetchCep, fetchCnpj, formatCep, formatEndereco } from "@/lib/api";
+import { Loader2, Search } from "lucide-react";
+import { toast } from "sonner";
 
 const clientSchema = z.object({
   name: z
@@ -90,6 +93,10 @@ const EditClientDialog = ({
   onSubmit,
   isSubmitting,
 }: EditClientDialogProps) => {
+  const [cepInput, setCepInput] = useState("");
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
+  const [isLoadingCnpj, setIsLoadingCnpj] = useState(false);
+
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -114,8 +121,52 @@ const EditClientDialog = ({
         inscricao_estadual: client.inscricao_estadual || "",
         endereco: client.endereco || "",
       });
+      setCepInput("");
     }
   }, [client, form]);
+
+  const handleCepSearch = async () => {
+    if (cepInput.replace(/\D/g, "").length !== 8) {
+      toast.error("CEP deve ter 8 dígitos");
+      return;
+    }
+    setIsLoadingCep(true);
+    const data = await fetchCep(cepInput);
+    setIsLoadingCep(false);
+    if (data) {
+      form.setValue("endereco", formatEndereco(data));
+      toast.success("Endereço preenchido!");
+    } else {
+      toast.error("CEP não encontrado");
+    }
+  };
+
+  const handleCnpjSearch = async () => {
+    const cnpj = form.getValues("cpf_cnpj").replace(/\D/g, "");
+    if (cnpj.length !== 14) {
+      toast.error("CNPJ deve ter 14 dígitos");
+      return;
+    }
+    setIsLoadingCnpj(true);
+    const data = await fetchCnpj(cnpj);
+    setIsLoadingCnpj(false);
+    if (data) {
+      form.setValue("name", data.razao_social || data.nome_fantasia);
+      if (data.email) form.setValue("email", data.email);
+      if (data.telefone) form.setValue("phone", maskPhone(data.telefone));
+      const endereco = [
+        data.logradouro,
+        data.numero,
+        data.bairro,
+        `${data.municipio} - ${data.uf}`,
+        data.cep,
+      ].filter(Boolean).join(", ");
+      if (endereco) form.setValue("endereco", endereco);
+      toast.success("Dados do CNPJ preenchidos!");
+    } else {
+      toast.error("CNPJ não encontrado");
+    }
+  };
 
   const handleSubmit = async (data: ClientFormData) => {
     if (client) {
@@ -217,12 +268,24 @@ const EditClientDialog = ({
                   <FormItem>
                     <FormLabel className="text-foreground">CPF/CNPJ *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="000.000.000-00"
-                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                        value={field.value}
-                        onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="000.000.000-00"
+                          className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                          value={field.value}
+                          onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={handleCnpjSearch}
+                          disabled={isLoadingCnpj || field.value.replace(/\D/g, "").length !== 14}
+                          title="Buscar CNPJ"
+                        >
+                          {isLoadingCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -245,6 +308,25 @@ const EditClientDialog = ({
                   </FormItem>
                 )}
               />
+              <div className="sm:col-span-2 space-y-2">
+                <FormLabel className="text-foreground">Buscar por CEP</FormLabel>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="00000-000"
+                    value={cepInput}
+                    onChange={(e) => setCepInput(formatCep(e.target.value))}
+                    className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCepSearch}
+                    disabled={isLoadingCep}
+                  >
+                    {isLoadingCep ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
               <FormField
                 control={form.control}
                 name="endereco"
