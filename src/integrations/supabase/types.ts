@@ -59,6 +59,33 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracao_custos: {
+        Row: {
+          created_at: string
+          custo_hora_trabalho: number
+          horas_trabalho_mes: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_hora_trabalho?: number
+          horas_trabalho_mes?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_hora_trabalho?: number
+          horas_trabalho_mes?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contas: {
         Row: {
           cliente_id: string | null
@@ -132,6 +159,39 @@ export type Database = {
           },
         ]
       }
+      despesas_fixas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_mensal: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_mensal?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       insumos: {
         Row: {
           created_at: string
@@ -147,6 +207,7 @@ export type Database = {
           unidade_medida: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
           user_id: string
+          usos_por_unidade: number
         }
         Insert: {
           created_at?: string
@@ -162,6 +223,7 @@ export type Database = {
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string
+          usos_por_unidade?: number
         }
         Update: {
           created_at?: string
@@ -177,6 +239,7 @@ export type Database = {
           unidade_medida?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string
+          usos_por_unidade?: number
         }
         Relationships: [
           {
@@ -490,6 +553,8 @@ export type Database = {
           is_demo: boolean | null
           margem_lucro: number
           nome: string
+          produto_base_id: string | null
+          tempo_producao_minutos: number
           updated_at: string
           user_id: string
         }
@@ -501,6 +566,8 @@ export type Database = {
           is_demo?: boolean | null
           margem_lucro?: number
           nome: string
+          produto_base_id?: string | null
+          tempo_producao_minutos?: number
           updated_at?: string
           user_id?: string
         }
@@ -512,10 +579,67 @@ export type Database = {
           is_demo?: boolean | null
           margem_lucro?: number
           nome?: string
+          produto_base_id?: string | null
+          tempo_producao_minutos?: number
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produtos_produto_base"
+            columns: ["produto_base_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_base"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_base: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          custo_aquisicao: number
+          descricao: string | null
+          fornecedor_id: string | null
+          id: string
+          is_demo: boolean | null
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          custo_aquisicao?: number
+          descricao?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          is_demo?: boolean | null
+          nome: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          custo_aquisicao?: number
+          descricao?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          is_demo?: boolean | null
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_base_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

@@ -37,6 +37,7 @@ const insumoSchema = z.object({
   preco_compra: z.coerce.number().min(0, "Preço deve ser maior ou igual a 0"),
   quantidade_embalagem: z.coerce.number().min(0.001, "Quantidade deve ser maior que 0"),
   estoque_minimo: z.coerce.number().min(0, "Estoque mínimo deve ser maior ou igual a 0"),
+  usos_por_unidade: z.coerce.number().min(1, "Usos por unidade deve ser pelo menos 1"),
 });
 
 type InsumoFormData = z.infer<typeof insumoSchema>;
@@ -49,6 +50,7 @@ interface NewInsumoDialogProps {
     preco_compra: number;
     quantidade_embalagem: number;
     estoque_minimo: number;
+    usos_por_unidade: number;
   }) => Promise<void>;
   isSubmitting: boolean;
   suppliers: Supplier[];
@@ -66,8 +68,16 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
       preco_compra: 0,
       quantidade_embalagem: 1,
       estoque_minimo: 0,
+      usos_por_unidade: 1,
     },
   });
+
+  const precoCompra = form.watch("preco_compra");
+  const quantidadeEmbalagem = form.watch("quantidade_embalagem");
+  const usosPorUnidade = form.watch("usos_por_unidade");
+
+  const custoUnitario = quantidadeEmbalagem > 0 ? precoCompra / quantidadeEmbalagem : 0;
+  const custoPorUso = usosPorUnidade > 0 ? custoUnitario / usosPorUnidade : custoUnitario;
 
   const handleSubmit = async (data: InsumoFormData) => {
     await onSubmit({
@@ -77,6 +87,7 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
       preco_compra: data.preco_compra,
       quantidade_embalagem: data.quantidade_embalagem,
       estoque_minimo: data.estoque_minimo,
+      usos_por_unidade: data.usos_por_unidade,
     });
     form.reset();
     setOpen(false);
@@ -164,7 +175,7 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="preco_compra"
@@ -204,6 +215,29 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="usos_por_unidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Usos por Unidade</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="1"
+                        min="1"
+                        placeholder="1"
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">Ex: papel com 3 impressões = 3</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -224,6 +258,25 @@ const NewInsumoDialog = ({ onSubmit, isSubmitting, suppliers }: NewInsumoDialogP
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Cálculos automáticos */}
+            <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
+              <h4 className="font-medium text-sm text-foreground">Cálculo Automático</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Custo Unitário:</span>
+                  <span className="ml-2 font-medium text-foreground">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(custoUnitario)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Custo por Uso:</span>
+                  <span className="ml-2 font-medium text-primary">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(custoPorUso)}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
