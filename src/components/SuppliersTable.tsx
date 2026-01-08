@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Truck, Mail, User } from "lucide-react";
+import { Pencil, Trash2, Truck, Mail, User, Phone, MapPin, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -7,6 +7,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import SortableTableHead, { SortDirection } from "@/components/SortableTableHead";
 
 interface Supplier {
@@ -14,6 +20,9 @@ interface Supplier {
   nome_fornecedor: string;
   nome_contato: string;
   email: string;
+  cnpj?: string | null;
+  telefone?: string | null;
+  endereco?: string | null;
 }
 
 interface SuppliersTableProps {
@@ -77,13 +86,31 @@ const SuppliersTable = ({
               Nome do Fornecedor
             </SortableTableHead>
             <SortableTableHead
+              sortKey="cnpj"
+              currentSortKey={sortKey}
+              currentSortDirection={sortDirection}
+              onSort={onSort}
+              icon={<FileText className="h-4 w-4" />}
+            >
+              CNPJ
+            </SortableTableHead>
+            <SortableTableHead
               sortKey="nome_contato"
               currentSortKey={sortKey}
               currentSortDirection={sortDirection}
               onSort={onSort}
               icon={<User className="h-4 w-4" />}
             >
-              Nome do Contato
+              Contato
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey="telefone"
+              currentSortKey={sortKey}
+              currentSortDirection={sortDirection}
+              onSort={onSort}
+              icon={<Phone className="h-4 w-4" />}
+            >
+              Telefone
             </SortableTableHead>
             <SortableTableHead
               sortKey="email"
@@ -94,7 +121,7 @@ const SuppliersTable = ({
             >
               Email
             </SortableTableHead>
-            <TableCell className="w-[140px] text-right font-display font-semibold text-foreground">
+            <TableCell className="w-[100px] text-right font-display font-semibold text-foreground">
               Ações
             </TableCell>
           </TableRow>
@@ -110,10 +137,33 @@ const SuppliersTable = ({
               }}
             >
               <TableCell className="font-medium text-foreground">
-                {supplier.nome_fornecedor}
+                <div>
+                  <span>{supplier.nome_fornecedor}</span>
+                  {supplier.endereco && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                            <MapPin className="h-3 w-3" />
+                            <span className="truncate max-w-[200px]">{supplier.endereco}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-[300px]">{supplier.endereco}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {supplier.cnpj || "-"}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {supplier.nome_contato}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {supplier.telefone || "-"}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {supplier.email}

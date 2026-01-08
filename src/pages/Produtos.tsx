@@ -498,94 +498,67 @@ const Produtos = () => {
           </div>
         </div>
 
-        {isDemoMode && (
-          <DemoBanner 
-            onClearDemo={async () => {
-              await clearDemoData();
-              await fetchProdutos();
-              await checkDemoStatus();
-            }} 
-            isClearing={isLoadingDemo} 
-          />
+        {isDemoMode && hasDemoData && <DemoBanner onClearDemo={clearDemoData} isClearing={isLoadingDemo} />}
+        {!hasDemoData && !isLoading && produtos.length === 0 && (
+          <LoadDemoPrompt onLoadDemo={loadDemoData} isLoading={isLoadingDemo} entityName="produtos e insumos" />
         )}
 
-        {!isLoading && produtos.length === 0 && !hasDemoData && (
-          <LoadDemoPrompt 
-            onLoadDemo={async () => {
-              await loadDemoData();
-              await fetchProdutos();
-              await checkDemoStatus();
-            }}
-            isLoading={isLoadingDemo}
-            entityName="produtos, insumos, clientes e fornecedores"
-          />
-        )}
-
-        <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ShoppingBag className="h-4 w-4" />
-              <span>
-                {isLoading
-                  ? "Carregando..."
-                  : `${filteredProdutos.length} produto${filteredProdutos.length !== 1 ? "s" : ""} encontrado${filteredProdutos.length !== 1 ? "s" : ""}`}
-              </span>
-            </div>
-            <div className="w-full sm:w-72">
-              <SearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="Buscar por nome, categoria..."
-              />
-            </div>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Buscar produtos..."
+            />
           </div>
-
-          <ProdutosTable
-            produtos={paginatedProdutos}
-            isLoading={isLoading}
-            onEdit={handleEditProduto}
-            onDelete={handleDeleteProduto}
-            sortKey={sortKey}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-            calcularCustoTotal={calcularCustoTotal}
-            calcularPrecoVenda={calcularPrecoVenda}
-          />
-
-          {!isLoading && filteredProdutos.length > 0 && (
-            <div className="mt-4">
-              <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                pageSize={pageSize}
-                totalItems={filteredProdutos.length}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={setPageSize}
-              />
-            </div>
-          )}
         </div>
+
+        <ProdutosTable
+          produtos={paginatedProdutos}
+          isLoading={isLoading}
+          onEdit={handleEditProduto}
+          onDelete={handleDeleteProduto}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          calcularCustoTotal={calcularCustoTotal}
+          calcularPrecoVenda={calcularPrecoVenda}
+          custoHoraTotal={custoHoraTotal}
+        />
+
+        {filteredProdutos.length > 0 && (
+          <div className="mt-4">
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filteredProdutos.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
+        )}
+
+        <EditProdutoDialog
+          produto={editingProduto}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSubmit={handleUpdateProduto}
+          isSubmitting={isSubmitting}
+          insumos={insumos}
+          produtosBase={produtosBase}
+          custoHoraTotal={custoHoraTotal}
+        />
+
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
+          title="Remover Produto"
+          description={`Tem certeza que deseja remover "${deletingProduto?.nome}"? Esta ação não pode ser desfeita.`}
+        />
       </main>
-
-      <EditProdutoDialog
-        produto={editingProduto}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onSubmit={handleUpdateProduto}
-        isSubmitting={isSubmitting}
-        insumos={insumos}
-        produtosBase={produtosBase}
-        custoHoraTotal={custoHoraTotal}
-      />
-
-      <DeleteConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleConfirmDelete}
-        title="Excluir Produto"
-        description={`Tem certeza que deseja excluir o produto "${deletingProduto?.nome}"? Esta ação não pode ser desfeita.`}
-        isDeleting={isDeleting}
-      />
     </div>
   );
 };
