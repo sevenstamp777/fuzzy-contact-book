@@ -3,7 +3,7 @@ import { Package, AlertTriangle, ArrowUpCircle, ArrowDownCircle, RefreshCw } fro
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
+
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
@@ -218,10 +218,7 @@ const Estoque = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-8 animate-fade-in">
           <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
             Controle de Estoque
@@ -396,7 +393,6 @@ const Estoque = () => {
             </div>
           </TabsContent>
         </Tabs>
-      </main>
 
       {/* Dialog de Movimentação */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -455,7 +451,7 @@ const Estoque = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 };
 

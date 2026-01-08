@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import Header from "@/components/Header";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -112,10 +112,7 @@ const Planos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-12 text-center animate-fade-in">
           <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
             Escolha o Plano Ideal
@@ -219,8 +216,7 @@ const Planos = () => {
           <p>Pagamentos processados de forma segura via Stripe.</p>
           <p className="mt-1">Cancele a qualquer momento sem taxas adicionais.</p>
         </div>
-      </main>
-    </div>
+    </main>
   );
 };
 

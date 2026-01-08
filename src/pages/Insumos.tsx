@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/hooks/useDemo";
-import Header from "@/components/Header";
+
 import InsumosTable from "@/components/InsumosTable";
 import NewInsumoDialog from "@/components/NewInsumoDialog";
 import EditInsumoDialog from "@/components/EditInsumoDialog";
@@ -391,113 +391,107 @@ const Insumos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <main className="container py-8">
+      <div className="mb-8 animate-fade-in">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+              Insumos
+            </h2>
+            <p className="mt-1 text-muted-foreground">
+              Gerencie os materiais básicos para seus produtos.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ImportCSVDialog
+              onImport={handleImportInsumos}
+              columns={insumoColumns}
+              entityName="Insumos"
+              templateData={insumoTemplateData}
+            />
+            <Button
+              variant="outline"
+              className="gap-2 border-border"
+              onClick={handleExportCSV}
+              disabled={filteredInsumos.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Exportar CSV
+            </Button>
+            <NewInsumoDialog
+              onSubmit={handleCreateInsumo}
+              isSubmitting={isSubmitting}
+              suppliers={suppliers}
+            />
+          </div>
+        </div>
+      </div>
 
-      <main className="container py-8">
-        <div className="mb-8 animate-fade-in">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
-                Insumos
-              </h2>
-              <p className="mt-1 text-muted-foreground">
-                Gerencie os materiais básicos para seus produtos.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <ImportCSVDialog
-                onImport={handleImportInsumos}
-                columns={insumoColumns}
-                entityName="Insumos"
-                templateData={insumoTemplateData}
-              />
-              <Button
-                variant="outline"
-                className="gap-2 border-border"
-                onClick={handleExportCSV}
-                disabled={filteredInsumos.length === 0}
-              >
-                <Download className="h-4 w-4" />
-                Exportar CSV
-              </Button>
-              <NewInsumoDialog
-                onSubmit={handleCreateInsumo}
-                isSubmitting={isSubmitting}
-                suppliers={suppliers}
-              />
-            </div>
+      {isDemoMode && (
+        <DemoBanner 
+          onClearDemo={async () => {
+            await clearDemoData();
+            await fetchInsumos();
+            await checkDemoStatus();
+          }} 
+          isClearing={isLoadingDemo} 
+        />
+      )}
+
+      {!isLoading && insumos.length === 0 && !hasDemoData && (
+        <LoadDemoPrompt 
+          onLoadDemo={async () => {
+            await loadDemoData();
+            await fetchInsumos();
+            await checkDemoStatus();
+          }}
+          isLoading={isLoadingDemo}
+          entityName="insumos, produtos, clientes e fornecedores"
+        />
+      )}
+
+      <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Package className="h-4 w-4" />
+            <span>
+              {isLoading
+                ? "Carregando..."
+                : `${filteredInsumos.length} insumo${filteredInsumos.length !== 1 ? "s" : ""} encontrado${filteredInsumos.length !== 1 ? "s" : ""}`}
+            </span>
+          </div>
+          <div className="w-full sm:w-72">
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Buscar por nome, fornecedor..."
+            />
           </div>
         </div>
 
-        {/* Demo mode banner */}
-        {isDemoMode && (
-          <DemoBanner 
-            onClearDemo={async () => {
-              await clearDemoData();
-              await fetchInsumos();
-              await checkDemoStatus();
-            }} 
-            isClearing={isLoadingDemo} 
-          />
-        )}
+        <InsumosTable
+          insumos={paginatedInsumos}
+          isLoading={isLoading}
+          onEdit={handleEditInsumo}
+          onDelete={handleDeleteInsumo}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+        />
 
-        {/* Load demo prompt for empty state */}
-        {!isLoading && insumos.length === 0 && !hasDemoData && (
-          <LoadDemoPrompt 
-            onLoadDemo={async () => {
-              await loadDemoData();
-              await fetchInsumos();
-              await checkDemoStatus();
-            }}
-            isLoading={isLoadingDemo}
-            entityName="insumos, produtos, clientes e fornecedores"
-          />
-        )}
-
-        <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Package className="h-4 w-4" />
-              <span>
-                {isLoading
-                  ? "Carregando..."
-                  : `${filteredInsumos.length} insumo${filteredInsumos.length !== 1 ? "s" : ""} encontrado${filteredInsumos.length !== 1 ? "s" : ""}`}
-              </span>
-            </div>
-            <div className="w-full sm:w-72">
-              <SearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="Buscar por nome, fornecedor..."
-              />
-            </div>
+        {!isLoading && filteredInsumos.length > 0 && (
+          <div className="mt-4">
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filteredInsumos.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
-
-          <InsumosTable
-            insumos={paginatedInsumos}
-            isLoading={isLoading}
-            onEdit={handleEditInsumo}
-            onDelete={handleDeleteInsumo}
-            sortKey={sortKey}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-          />
-
-          {!isLoading && filteredInsumos.length > 0 && (
-            <div className="mt-4">
-              <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                pageSize={pageSize}
-                totalItems={filteredInsumos.length}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={setPageSize}
-              />
-            </div>
-          )}
-        </div>
-      </main>
+        )}
+      </div>
 
       <EditInsumoDialog
         insumo={editingInsumo}
@@ -516,7 +510,7 @@ const Insumos = () => {
         description={`Tem certeza que deseja excluir o insumo "${deletingInsumo?.nome}"? Esta ação não pode ser desfeita.`}
         isDeleting={isDeleting}
       />
-    </div>
+    </main>
   );
 };
 

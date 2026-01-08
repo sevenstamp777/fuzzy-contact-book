@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import Header from "@/components/Header";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -22,7 +24,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <Breadcrumbs />
+      {children}
+    </div>
+  );
 };
 
 export default ProtectedRoute;

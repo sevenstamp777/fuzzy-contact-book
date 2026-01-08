@@ -3,7 +3,7 @@ import { Factory, Plus, Play, CheckCircle, XCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
+
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
@@ -332,10 +332,7 @@ const OrdensProducao = () => {
   }, [selectedProduto, selectedOrdem]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-8 animate-fade-in">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -497,7 +494,6 @@ const OrdensProducao = () => {
             </div>
           )}
         </div>
-      </main>
 
       {/* Dialog de Criar Ordem */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -668,7 +664,7 @@ const OrdensProducao = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 };
 

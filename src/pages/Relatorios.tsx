@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { BarChart3, TrendingUp, DollarSign, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -308,10 +308,7 @@ const Relatorios = () => {
   }, [produtosComCalculos]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-8 animate-fade-in">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -711,8 +708,7 @@ const Relatorios = () => {
             </Tabs>
           </>
         )}
-      </main>
-    </div>
+    </main>
   );
 };
 

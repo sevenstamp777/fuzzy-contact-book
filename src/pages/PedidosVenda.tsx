@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, ShoppingCart, Eye, Trash2, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -342,9 +342,7 @@ const PedidosVenda = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
@@ -622,8 +620,7 @@ const PedidosVenda = () => {
             )}
           </DialogContent>
         </Dialog>
-      </main>
-    </div>
+    </main>
   );
 };
 
