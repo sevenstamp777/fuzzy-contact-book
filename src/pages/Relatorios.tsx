@@ -42,7 +42,12 @@ interface ProdutoInsumo {
   quantidade: number;
   insumo: {
     custo_unitario: number;
+    usos_por_unidade: number;
   };
+}
+
+interface ProdutoBase {
+  custo_aquisicao: number;
 }
 
 interface Produto {
@@ -50,6 +55,8 @@ interface Produto {
   nome: string;
   categoria: string | null;
   margem_lucro: number;
+  tempo_producao_minutos: number;
+  produto_base?: ProdutoBase | null;
   produto_insumos: ProdutoInsumo[];
 }
 
@@ -77,9 +84,21 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 };
 
+interface ConfigCusto {
+  custo_hora_trabalho: number;
+  horas_trabalho_mes: number;
+}
+
+interface DespesaFixa {
+  valor_mensal: number;
+  ativo: boolean;
+}
+
 const Relatorios = () => {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [ordens, setOrdens] = useState<OrdemProducao[]>([]);
+  const [configCusto, setConfigCusto] = useState<ConfigCusto | null>(null);
+  const [despesasFixas, setDespesasFixas] = useState<DespesaFixa[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [periodoMeses, setPeriodoMeses] = useState("6");
   const { toast } = useToast();
@@ -87,12 +106,13 @@ const Relatorios = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [produtosResult, ordensResult] = await Promise.all([
+      const [produtosResult, ordensResult, configResult, despesasResult] = await Promise.all([
         supabase
           .from("produtos")
           .select(`
-            id, nome, categoria, margem_lucro,
-            produto_insumos(quantidade, insumo:insumos(custo_unitario))
+            id, nome, categoria, margem_lucro, tempo_producao_minutos,
+            produto_base:produtos_base(custo_aquisicao),
+            produto_insumos(quantidade, insumo:insumos(custo_unitario, usos_por_unidade))
           `)
           .order("nome"),
         supabase
@@ -102,10 +122,19 @@ const Relatorios = () => {
             produto:produtos(nome, categoria)
           `)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("configuracao_custos")
+          .select("custo_hora_trabalho, horas_trabalho_mes")
+          .maybeSingle(),
+        supabase
+          .from("despesas_fixas")
+          .select("valor_mensal, ativo"),
       ]);
 
       if (!produtosResult.error) setProdutos(produtosResult.data || []);
       if (!ordensResult.error) setOrdens(ordensResult.data || []);
+      if (!configResult.error) setConfigCusto(configResult.data);
+      if (!despesasResult.error) setDespesasFixas(despesasResult.data || []);
     } catch (error) {
       toast({ title: "Erro ao carregar dados", variant: "destructive" });
     } finally {
@@ -117,24 +146,56 @@ const Relatorios = () => {
     fetchData();
   }, []);
 
+  // Calcular custo hora total (trabalho + rateio despesas)
+  const custoHoraTotal = useMemo(() => {
+    if (!configCusto) return 0;
+    const totalDespesas = despesasFixas
+      .filter(d => d.ativo)
+      .reduce((sum, d) => sum + Number(d.valor_mensal), 0);
+    const despesaPorHora = configCusto.horas_trabalho_mes > 0 
+      ? totalDespesas / configCusto.horas_trabalho_mes 
+      : 0;
+    return Number(configCusto.custo_hora_trabalho) + despesaPorHora;
+  }, [configCusto, despesasFixas]);
+
   // Calcular custo e preço de venda para cada produto
   const produtosComCalculos = useMemo(() => {
     return produtos.map((produto) => {
-      const custoTotal = produto.produto_insumos.reduce((total, pi) => {
-        return total + (pi.insumo?.custo_unitario || 0) * pi.quantidade;
+      // 1. Custo do produto base
+      const custoBase = produto.produto_base 
+        ? Number(produto.produto_base.custo_aquisicao) 
+        : 0;
+
+      // 2. Custo dos insumos (usando custo por uso)
+      const custoInsumos = produto.produto_insumos.reduce((total, pi) => {
+        if (!pi.insumo) return total;
+        const custoUnitario = Number(pi.insumo.custo_unitario || 0);
+        const usosPorUnidade = Number(pi.insumo.usos_por_unidade || 1);
+        const custoPorUso = usosPorUnidade > 0 ? custoUnitario / usosPorUnidade : custoUnitario;
+        return total + custoPorUso * Number(pi.quantidade);
       }, 0);
+
+      // 3. Custo de mão de obra
+      const tempoHoras = Number(produto.tempo_producao_minutos || 0) / 60;
+      const custoMaoDeObra = tempoHoras * custoHoraTotal;
+
+      const custoTotal = custoBase + custoInsumos + custoMaoDeObra;
       const precoVenda = custoTotal * (1 + produto.margem_lucro / 100);
       const lucroUnitario = precoVenda - custoTotal;
       
       return {
         ...produto,
+        custoBase,
+        custoInsumos,
+        custoMaoDeObra,
         custoTotal,
         precoVenda,
         lucroUnitario,
         margemReal: custoTotal > 0 ? ((precoVenda - custoTotal) / precoVenda) * 100 : 0,
       };
     });
-  }, [produtos]);
+  }, [produtos, custoHoraTotal]);
+
 
   // Filtrar ordens pelo período selecionado
   const ordensNoPeriodo = useMemo(() => {
@@ -513,50 +574,128 @@ const Relatorios = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="margem">
+              <TabsContent value="margem" className="space-y-6">
+                {/* Gráfico de composição de custos agregado */}
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle>Composição Média de Custos</CardTitle>
+                    <CardDescription>Distribuição entre produto base, insumos e mão de obra</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      {(() => {
+                        const totais = produtosComCalculos.reduce(
+                          (acc, p) => ({
+                            base: acc.base + p.custoBase,
+                            insumos: acc.insumos + p.custoInsumos,
+                            maoDeObra: acc.maoDeObra + p.custoMaoDeObra,
+                          }),
+                          { base: 0, insumos: 0, maoDeObra: 0 }
+                        );
+                        const composicaoData = [
+                          { name: "Produto Base", value: totais.base, color: "hsl(199, 89%, 48%)" },
+                          { name: "Insumos", value: totais.insumos, color: "hsl(173, 80%, 40%)" },
+                          { name: "Mão de Obra", value: totais.maoDeObra, color: "hsl(280, 65%, 60%)" },
+                        ].filter(d => d.value > 0);
+
+                        if (composicaoData.length === 0) {
+                          return (
+                            <div className="flex h-full items-center justify-center text-muted-foreground">
+                              Nenhum dado de custo disponível
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={composicaoData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={100}
+                                dataKey="value"
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              >
+                                {composicaoData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle>Ranking de Margem de Lucro</CardTitle>
-                    <CardDescription>Produtos ordenados por margem de lucro</CardDescription>
+                    <CardDescription>Comparativo custo × preço de venda por produto</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border">
                           <TableHead>Produto</TableHead>
-                          <TableHead>Categoria</TableHead>
-                          <TableHead className="text-right">Custo Unit.</TableHead>
+                          <TableHead className="text-right">Base</TableHead>
+                          <TableHead className="text-right">Insumos</TableHead>
+                          <TableHead className="text-right">Mão de Obra</TableHead>
+                          <TableHead className="text-right">Custo Total</TableHead>
                           <TableHead className="text-right">Preço Venda</TableHead>
-                          <TableHead className="text-right">Lucro Unit.</TableHead>
+                          <TableHead className="text-right">Lucro</TableHead>
                           <TableHead className="text-right">Margem</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rankingMargem.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                               Nenhum produto cadastrado com custo definido.
                             </TableCell>
                           </TableRow>
                         ) : (
                           rankingMargem.map((produto) => (
                             <TableRow key={produto.id} className="border-border">
-                              <TableCell className="font-medium">{produto.nome}</TableCell>
-                              <TableCell className="text-muted-foreground">{produto.categoria || "-"}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(produto.custoTotal)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(produto.precoVenda)}</TableCell>
-                              <TableCell className="text-right text-green-600">
+                              <TableCell className="font-medium">
+                                <div>
+                                  <span>{produto.nome}</span>
+                                  {produto.categoria && (
+                                    <p className="text-xs text-muted-foreground">{produto.categoria}</p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {formatCurrency(produto.custoBase)}
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {formatCurrency(produto.custoInsumos)}
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {formatCurrency(produto.custoMaoDeObra)}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(produto.custoTotal)}
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-primary">
+                                {formatCurrency(produto.precoVenda)}
+                              </TableCell>
+                              <TableCell className="text-right text-green-600 font-medium">
                                 {formatCurrency(produto.lucroUnitario)}
                               </TableCell>
                               <TableCell className="text-right">
                                 <span
-                                  className={
+                                  className={`font-bold ${
                                     produto.margemReal >= 30
                                       ? "text-green-600"
                                       : produto.margemReal >= 15
                                       ? "text-yellow-600"
                                       : "text-red-600"
-                                  }
+                                  }`}
                                 >
                                   {produto.margemReal.toFixed(1)}%
                                 </span>

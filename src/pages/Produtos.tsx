@@ -14,8 +14,17 @@ import TablePagination from "@/components/TablePagination";
 import DemoBanner from "@/components/DemoBanner";
 import LoadDemoPrompt from "@/components/LoadDemoPrompt";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 export interface Insumo {
   id: string;
@@ -501,6 +510,81 @@ const Produtos = () => {
         {isDemoMode && hasDemoData && <DemoBanner onClearDemo={clearDemoData} isClearing={isLoadingDemo} />}
         {!hasDemoData && !isLoading && produtos.length === 0 && (
           <LoadDemoPrompt onLoadDemo={loadDemoData} isLoading={isLoadingDemo} entityName="produtos e insumos" />
+        )}
+
+        {/* Gráfico de composição de custos */}
+        {produtos.length > 0 && !isLoading && (
+          <Card className="mb-6 border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Composição de Custos</CardTitle>
+              <CardDescription>Distribuição média entre base, insumos e mão de obra</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[200px]">
+                {(() => {
+                  const totais = produtos.reduce(
+                    (acc, p) => {
+                      const custoBase = p.produto_base ? Number(p.produto_base.custo_aquisicao) : 0;
+                      const custoInsumos = (p.produto_insumos || []).reduce((total, pi) => {
+                        if (!pi.insumo) return total;
+                        const custoUnitario = Number(pi.insumo.custo_unitario || 0);
+                        const usosPorUnidade = Number(pi.insumo.usos_por_unidade || 1);
+                        const custoPorUso = usosPorUnidade > 0 ? custoUnitario / usosPorUnidade : custoUnitario;
+                        return total + custoPorUso * Number(pi.quantidade);
+                      }, 0);
+                      const tempoHoras = Number(p.tempo_producao_minutos || 0) / 60;
+                      const custoMaoDeObra = tempoHoras * custoHoraTotal;
+                      return {
+                        base: acc.base + custoBase,
+                        insumos: acc.insumos + custoInsumos,
+                        maoDeObra: acc.maoDeObra + custoMaoDeObra,
+                      };
+                    },
+                    { base: 0, insumos: 0, maoDeObra: 0 }
+                  );
+                  const composicaoData = [
+                    { name: "Produto Base", value: totais.base, color: "hsl(199, 89%, 48%)" },
+                    { name: "Insumos", value: totais.insumos, color: "hsl(173, 80%, 40%)" },
+                    { name: "Mão de Obra", value: totais.maoDeObra, color: "hsl(280, 65%, 60%)" },
+                  ].filter(d => d.value > 0);
+
+                  if (composicaoData.length === 0) {
+                    return (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        Configure custos para ver a composição
+                      </div>
+                    );
+                  }
+
+                  const formatCurrency = (value: number) => 
+                    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+                  return (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={composicaoData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {composicaoData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
