@@ -3,6 +3,7 @@ import { Package, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/hooks/useDemo";
 import Header from "@/components/Header";
 import InsumosTable from "@/components/InsumosTable";
 import NewInsumoDialog from "@/components/NewInsumoDialog";
@@ -11,6 +12,8 @@ import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import ImportCSVDialog from "@/components/ImportCSVDialog";
+import DemoBanner from "@/components/DemoBanner";
+import LoadDemoPrompt from "@/components/LoadDemoPrompt";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/export";
 import { SortDirection } from "@/components/SortableTableHead";
@@ -34,6 +37,7 @@ export interface Supplier {
 }
 
 const ITEMS_PER_PAGE = 10;
+const MAX_IMPORT_ROWS = 200;
 
 const UNIDADE_LABELS: Record<string, string> = {
   un: "Unidade",
@@ -44,6 +48,7 @@ const UNIDADE_LABELS: Record<string, string> = {
 
 const Insumos = () => {
   const { user } = useAuth();
+  const { isDemoMode, hasDemoData, isLoadingDemo, loadDemoData, clearDemoData, checkDemoStatus } = useDemo();
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,13 +66,20 @@ const Insumos = () => {
   const { toast } = useToast();
 
   const fetchInsumos = async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      // Defense in depth: filter by user_id even though RLS handles it
       const { data, error } = await supabase
         .from("insumos")
         .select(`
           id, nome, unidade_medida, fornecedor_id, preco_compra, quantidade_embalagem, custo_unitario, quantidade_estoque, estoque_minimo,
           fornecedor:suppliers(nome_fornecedor)
         `)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -84,17 +96,22 @@ const Insumos = () => {
   };
 
   const fetchSuppliers = async () => {
+    if (!user?.id) return;
+    
     const { data } = await supabase
       .from("suppliers")
       .select("id, nome_fornecedor")
+      .eq("user_id", user.id)
       .order("nome_fornecedor");
     setSuppliers(data || []);
   };
 
   useEffect(() => {
-    fetchInsumos();
-    fetchSuppliers();
-  }, []);
+    if (user?.id) {
+      fetchInsumos();
+      fetchSuppliers();
+    }
+  }, [user?.id]);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -127,8 +144,8 @@ const Insumos = () => {
         bValue = Number(b[sortKey as keyof Insumo]) || 0;
         return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
       } else {
-        aValue = (a[sortKey as keyof Insumo] || "").toString().toLowerCase();
-        bValue = (b[sortKey as keyof Insumo] || "").toString().toLowerCase();
+        aValue = (a[sortKey as keyof Insumo] ?? "").toString().toLowerCase();
+        bValue = (b[sortKey as keyof Insumo] ?? "").toString().toLowerCase();
       }
 
       if (sortDirection === "asc") {
@@ -138,14 +155,15 @@ const Insumos = () => {
     });
   }, [insumos, sortKey, sortDirection]);
 
+  // Safe search with null checks on all fields
   const filteredInsumos = useMemo(() => {
     if (!searchTerm.trim()) return sortedInsumos;
     const term = searchTerm.toLowerCase();
     return sortedInsumos.filter(
       (insumo) =>
-        insumo.nome.toLowerCase().includes(term) ||
-        insumo.fornecedor?.nome_fornecedor?.toLowerCase().includes(term) ||
-        UNIDADE_LABELS[insumo.unidade_medida]?.toLowerCase().includes(term)
+        (insumo.nome ?? "").toLowerCase().includes(term) ||
+        (insumo.fornecedor?.nome_fornecedor ?? "").toLowerCase().includes(term) ||
+        (UNIDADE_LABELS[insumo.unidade_medida] ?? "").toLowerCase().includes(term)
     );
   }, [sortedInsumos, searchTerm]);
 
@@ -183,38 +201,55 @@ const Insumos = () => {
   };
 
   const handleImportInsumos = async (data: Record<string, string>[]): Promise<{ success: number; errors: string[] }> => {
-    let success = 0;
     const errors: string[] = [];
 
-    for (const row of data) {
-      try {
-        const precoCompra = parseFloat(row.preco_compra?.replace(",", ".") || "0");
-        const qtdEmbalagem = parseFloat(row.quantidade_embalagem?.replace(",", ".") || "1");
-        
-        const { error } = await supabase.from("insumos").insert({
-          nome: row.nome?.trim() || "",
-          unidade_medida: (row.unidade_medida?.toLowerCase() as "un" | "kg" | "ml" | "m") || "un",
-          preco_compra: precoCompra,
-          quantidade_embalagem: qtdEmbalagem || 1,
-          estoque_minimo: parseFloat(row.estoque_minimo?.replace(",", ".") || "0"),
-          fornecedor_id: null, // CSV doesn't handle relations well
-        });
+    // Limit check: max rows per import
+    if (data.length > MAX_IMPORT_ROWS) {
+      errors.push(`Limite máximo de ${MAX_IMPORT_ROWS} registros por importação. Você enviou ${data.length}.`);
+      return { success: 0, errors };
+    }
 
-        if (error) {
-          errors.push(`${row.nome}: ${error.message}`);
-        } else {
-          success++;
-        }
-      } catch (err) {
-        errors.push(`${row.nome}: Erro desconhecido`);
+    // Validate and prepare batch
+    const validRows: Record<string, string>[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const nome = row.nome?.trim();
+      if (!nome || nome.length < 2) {
+        errors.push(`Linha ${i + 1}: Nome é obrigatório (mínimo 2 caracteres)`);
+      } else {
+        validRows.push(row);
       }
     }
 
-    if (success > 0) {
-      await fetchInsumos();
+    if (validRows.length === 0) {
+      return { success: 0, errors };
     }
 
-    return { success, errors };
+    // Prepare batch insert
+    const insumosToInsert = validRows.map(row => ({
+      nome: (row.nome?.trim() || "").substring(0, 255),
+      unidade_medida: (row.unidade_medida?.toLowerCase() as "un" | "kg" | "ml" | "m") || "un",
+      preco_compra: parseFloat(row.preco_compra?.replace(",", ".") || "0"),
+      quantidade_embalagem: parseFloat(row.quantidade_embalagem?.replace(",", ".") || "1") || 1,
+      estoque_minimo: parseFloat(row.estoque_minimo?.replace(",", ".") || "0"),
+      fornecedor_id: null,
+      user_id: user?.id,
+    }));
+
+    try {
+      const { error } = await supabase.from("insumos").insert(insumosToInsert);
+
+      if (error) {
+        errors.push(`Erro ao inserir: ${error.message}`);
+        return { success: 0, errors };
+      }
+
+      await fetchInsumos();
+      return { success: insumosToInsert.length, errors };
+    } catch (err) {
+      errors.push("Erro desconhecido ao inserir insumos");
+      return { success: 0, errors };
+    }
   };
 
   const insumoColumns = [
@@ -282,10 +317,12 @@ const Insumos = () => {
   ) => {
     setIsSubmitting(true);
     try {
+      // Defense in depth: ensure we're updating our own insumo
       const { error } = await supabase
         .from("insumos")
         .update(data)
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user?.id);
 
       if (error) throw error;
 
@@ -318,10 +355,12 @@ const Insumos = () => {
 
     setIsDeleting(true);
     try {
+      // Defense in depth: ensure we're deleting our own insumo
       const { error } = await supabase
         .from("insumos")
         .delete()
-        .eq("id", deletingInsumo.id);
+        .eq("id", deletingInsumo.id)
+        .eq("user_id", user?.id);
 
       if (error) throw error;
 
@@ -383,6 +422,31 @@ const Insumos = () => {
             </div>
           </div>
         </div>
+
+        {/* Demo mode banner */}
+        {isDemoMode && (
+          <DemoBanner 
+            onClearDemo={async () => {
+              await clearDemoData();
+              await fetchInsumos();
+              await checkDemoStatus();
+            }} 
+            isClearing={isLoadingDemo} 
+          />
+        )}
+
+        {/* Load demo prompt for empty state */}
+        {!isLoading && insumos.length === 0 && !hasDemoData && (
+          <LoadDemoPrompt 
+            onLoadDemo={async () => {
+              await loadDemoData();
+              await fetchInsumos();
+              await checkDemoStatus();
+            }}
+            isLoading={isLoadingDemo}
+            entityName="insumos, produtos, clientes e fornecedores"
+          />
+        )}
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
