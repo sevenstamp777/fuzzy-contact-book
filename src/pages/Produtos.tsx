@@ -22,6 +22,13 @@ export interface Insumo {
   nome: string;
   unidade_medida: string;
   custo_unitario: number;
+  usos_por_unidade: number;
+}
+
+export interface ProdutoBase {
+  id: string;
+  nome: string;
+  custo_aquisicao: number;
 }
 
 export interface ProdutoInsumo {
@@ -37,7 +44,20 @@ export interface Produto {
   categoria: string | null;
   descricao: string | null;
   margem_lucro: number;
+  produto_base_id: string | null;
+  tempo_producao_minutos: number;
   produto_insumos?: ProdutoInsumo[];
+  produto_base?: ProdutoBase | null;
+}
+
+export interface ConfiguracaoCusto {
+  custo_hora_trabalho: number;
+  horas_trabalho_mes: number;
+}
+
+export interface DespesaFixa {
+  valor_mensal: number;
+  ativo: boolean;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -47,6 +67,9 @@ const Produtos = () => {
   const { isDemoMode, hasDemoData, isLoadingDemo, loadDemoData, clearDemoData, checkDemoStatus } = useDemo();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
+  const [produtosBase, setProdutosBase] = useState<ProdutoBase[]>([]);
+  const [configCusto, setConfigCusto] = useState<ConfiguracaoCusto | null>(null);
+  const [despesasFixas, setDespesasFixas] = useState<DespesaFixa[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
@@ -61,6 +84,18 @@ const Produtos = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
 
+  // Calcular custo hora total (trabalho + rateio despesas)
+  const custoHoraTotal = useMemo(() => {
+    if (!configCusto) return 0;
+    const totalDespesas = despesasFixas
+      .filter(d => d.ativo)
+      .reduce((sum, d) => sum + Number(d.valor_mensal), 0);
+    const despesaPorHora = configCusto.horas_trabalho_mes > 0 
+      ? totalDespesas / configCusto.horas_trabalho_mes 
+      : 0;
+    return Number(configCusto.custo_hora_trabalho) + despesaPorHora;
+  }, [configCusto, despesasFixas]);
+
   const fetchProdutos = async () => {
     if (!user?.id) {
       setIsLoading(false);
@@ -68,12 +103,12 @@ const Produtos = () => {
     }
 
     try {
-      // Defense in depth: filter by user_id even though RLS handles it
       const { data, error } = await supabase
         .from("produtos")
         .select(`
-          id, nome, categoria, descricao, margem_lucro,
-          produto_insumos(id, insumo_id, quantidade, insumo:insumos(id, nome, unidade_medida, custo_unitario))
+          id, nome, categoria, descricao, margem_lucro, produto_base_id, tempo_producao_minutos,
+          produto_insumos(id, insumo_id, quantidade, insumo:insumos(id, nome, unidade_medida, custo_unitario, usos_por_unidade)),
+          produto_base:produtos_base(id, nome, custo_aquisicao)
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -96,25 +131,69 @@ const Produtos = () => {
 
     const { data } = await supabase
       .from("insumos")
-      .select("id, nome, unidade_medida, custo_unitario")
+      .select("id, nome, unidade_medida, custo_unitario, usos_por_unidade")
       .eq("user_id", user.id)
       .order("nome");
     setInsumos(data || []);
+  };
+
+  const fetchProdutosBase = async () => {
+    if (!user?.id) return;
+
+    const { data } = await supabase
+      .from("produtos_base")
+      .select("id, nome, custo_aquisicao")
+      .eq("user_id", user.id)
+      .order("nome");
+    setProdutosBase(data || []);
+  };
+
+  const fetchConfigCusto = async () => {
+    if (!user?.id) return;
+
+    const { data: config } = await supabase
+      .from("configuracao_custos")
+      .select("custo_hora_trabalho, horas_trabalho_mes")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setConfigCusto(config);
+
+    const { data: despesas } = await supabase
+      .from("despesas_fixas")
+      .select("valor_mensal, ativo")
+      .eq("user_id", user.id);
+    setDespesasFixas(despesas || []);
   };
 
   useEffect(() => {
     if (user?.id) {
       fetchProdutos();
       fetchInsumos();
+      fetchProdutosBase();
+      fetchConfigCusto();
     }
   }, [user?.id]);
 
   const calcularCustoTotal = (produto: Produto) => {
-    if (!produto.produto_insumos) return 0;
-    return produto.produto_insumos.reduce((total, pi) => {
-      const custoInsumo = Number(pi.insumo?.custo_unitario || 0);
-      return total + custoInsumo * Number(pi.quantidade);
+    // 1. Custo do produto base
+    const custoProdutoBase = produto.produto_base 
+      ? Number(produto.produto_base.custo_aquisicao) 
+      : 0;
+
+    // 2. Custo dos insumos (usando custo por uso)
+    const custoInsumos = (produto.produto_insumos || []).reduce((total, pi) => {
+      if (!pi.insumo) return total;
+      const custoUnitario = Number(pi.insumo.custo_unitario || 0);
+      const usosPorUnidade = Number(pi.insumo.usos_por_unidade || 1);
+      const custoPorUso = usosPorUnidade > 0 ? custoUnitario / usosPorUnidade : custoUnitario;
+      return total + custoPorUso * Number(pi.quantidade);
     }, 0);
+
+    // 3. Custo de mão de obra (tempo × custo hora)
+    const tempoHoras = Number(produto.tempo_producao_minutos || 0) / 60;
+    const custoMaoDeObra = tempoHoras * custoHoraTotal;
+
+    return custoProdutoBase + custoInsumos + custoMaoDeObra;
   };
 
   const calcularPrecoVenda = (produto: Produto) => {
@@ -168,9 +247,8 @@ const Produtos = () => {
       }
       return String(bValue).localeCompare(String(aValue));
     });
-  }, [produtos, sortKey, sortDirection]);
+  }, [produtos, sortKey, sortDirection, custoHoraTotal]);
 
-  // Safe search with null checks on all fields
   const filteredProdutos = useMemo(() => {
     if (!searchTerm.trim()) return sortedProdutos;
     const term = searchTerm.toLowerCase();
@@ -178,7 +256,8 @@ const Produtos = () => {
       (produto) =>
         (produto.nome ?? "").toLowerCase().includes(term) ||
         (produto.categoria ?? "").toLowerCase().includes(term) ||
-        (produto.descricao ?? "").toLowerCase().includes(term)
+        (produto.descricao ?? "").toLowerCase().includes(term) ||
+        (produto.produto_base?.nome ?? "").toLowerCase().includes(term)
     );
   }, [sortedProdutos, searchTerm]);
 
@@ -196,7 +275,8 @@ const Produtos = () => {
     const exportData = filteredProdutos.map((p) => ({
       nome: p.nome,
       categoria: p.categoria || "-",
-      descricao: p.descricao || "-",
+      produto_base: p.produto_base?.nome || "-",
+      tempo_minutos: p.tempo_producao_minutos,
       custo_total: calcularCustoTotal(p).toFixed(2),
       margem_lucro: `${p.margem_lucro}%`,
       preco_venda: calcularPrecoVenda(p).toFixed(2),
@@ -204,7 +284,8 @@ const Produtos = () => {
     exportToCSV(exportData, "produtos", [
       { key: "nome", label: "Nome" },
       { key: "categoria", label: "Categoria" },
-      { key: "descricao", label: "Descrição" },
+      { key: "produto_base", label: "Produto Base" },
+      { key: "tempo_minutos", label: "Tempo (min)" },
       { key: "custo_total", label: "Custo Total (R$)" },
       { key: "margem_lucro", label: "Margem de Lucro" },
       { key: "preco_venda", label: "Preço de Venda (R$)" },
@@ -220,6 +301,8 @@ const Produtos = () => {
     categoria: string | null;
     descricao: string | null;
     margem_lucro: number;
+    produto_base_id: string | null;
+    tempo_producao_minutos: number;
     insumos: { insumo_id: string; quantidade: number }[];
   }) => {
     setIsSubmitting(true);
@@ -231,6 +314,8 @@ const Produtos = () => {
           categoria: data.categoria,
           descricao: data.descricao,
           margem_lucro: data.margem_lucro,
+          produto_base_id: data.produto_base_id,
+          tempo_producao_minutos: data.tempo_producao_minutos,
           user_id: user?.id,
         }])
         .select()
@@ -279,12 +364,13 @@ const Produtos = () => {
       categoria: string | null;
       descricao: string | null;
       margem_lucro: number;
+      produto_base_id: string | null;
+      tempo_producao_minutos: number;
       insumos: { insumo_id: string; quantidade: number }[];
     }
   ) => {
     setIsSubmitting(true);
     try {
-      // Defense in depth: ensure we're updating our own produto
       const { error: produtoError } = await supabase
         .from("produtos")
         .update({
@@ -292,13 +378,14 @@ const Produtos = () => {
           categoria: data.categoria,
           descricao: data.descricao,
           margem_lucro: data.margem_lucro,
+          produto_base_id: data.produto_base_id,
+          tempo_producao_minutos: data.tempo_producao_minutos,
         })
         .eq("id", id)
         .eq("user_id", user?.id);
 
       if (produtoError) throw produtoError;
 
-      // Delete existing insumos and insert new ones
       await supabase.from("produto_insumos").delete().eq("produto_id", id);
 
       if (data.insumos.length > 0) {
@@ -342,7 +429,6 @@ const Produtos = () => {
 
     setIsDeleting(true);
     try {
-      // Defense in depth: ensure we're deleting our own produto
       const { error } = await supabase
         .from("produtos")
         .delete()
@@ -379,11 +465,16 @@ const Produtos = () => {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
-                Produtos
+                Produtos Finais
               </h2>
               <p className="mt-1 text-muted-foreground">
-                Gerencie seus produtos e calcule preços automaticamente.
+                Gerencie seus produtos personalizados com cálculo completo de custos.
               </p>
+              {custoHoraTotal > 0 && (
+                <p className="text-xs text-primary mt-1">
+                  Custo hora configurado: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(custoHoraTotal)}/h
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -399,13 +490,14 @@ const Produtos = () => {
                 onSubmit={handleCreateProduto}
                 isSubmitting={isSubmitting}
                 insumos={insumos}
+                produtosBase={produtosBase}
+                custoHoraTotal={custoHoraTotal}
                 produtosCount={produtos.length}
               />
             </div>
           </div>
         </div>
 
-        {/* Demo mode banner */}
         {isDemoMode && (
           <DemoBanner 
             onClearDemo={async () => {
@@ -417,7 +509,6 @@ const Produtos = () => {
           />
         )}
 
-        {/* Load demo prompt for empty state */}
         {!isLoading && produtos.length === 0 && !hasDemoData && (
           <LoadDemoPrompt 
             onLoadDemo={async () => {
@@ -483,6 +574,8 @@ const Produtos = () => {
         onSubmit={handleUpdateProduto}
         isSubmitting={isSubmitting}
         insumos={insumos}
+        produtosBase={produtosBase}
+        custoHoraTotal={custoHoraTotal}
       />
 
       <DeleteConfirmDialog

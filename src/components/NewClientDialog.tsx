@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
+import { fetchCep, fetchCnpj, formatCep, formatEndereco } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const clientSchema = z.object({
   name: z
@@ -44,8 +46,9 @@ const clientSchema = z.object({
   rg: z
     .string()
     .trim()
-    .min(1, "RG é obrigatório")
-    .max(20, "RG deve ter no máximo 20 caracteres"),
+    .max(20, "RG deve ter no máximo 20 caracteres")
+    .optional()
+    .or(z.literal("")),
   cpf_cnpj: z
     .string()
     .trim()
@@ -55,6 +58,12 @@ const clientSchema = z.object({
     .string()
     .trim()
     .max(20, "IE deve ter no máximo 20 caracteres")
+    .optional()
+    .or(z.literal("")),
+  cep: z
+    .string()
+    .trim()
+    .max(10, "CEP deve ter no máximo 10 caracteres")
     .optional()
     .or(z.literal("")),
   endereco: z
@@ -73,6 +82,9 @@ interface NewClientDialogProps {
 
 const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
   const [open, setOpen] = useState(false);
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
+  const [isLoadingCnpj, setIsLoadingCnpj] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -83,6 +95,7 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
       rg: "",
       cpf_cnpj: "",
       inscricao_estadual: "",
+      cep: "",
       endereco: "",
     },
   });
@@ -91,6 +104,79 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
     await onSubmit(data);
     form.reset();
     setOpen(false);
+  };
+
+  const handleCepSearch = async () => {
+    const cep = form.getValues("cep");
+    if (!cep) return;
+
+    setIsLoadingCep(true);
+    const data = await fetchCep(cep);
+    setIsLoadingCep(false);
+
+    if (data) {
+      form.setValue("endereco", formatEndereco(data));
+      toast({
+        title: "CEP encontrado!",
+        description: `Endereço preenchido automaticamente.`,
+      });
+    } else {
+      toast({
+        title: "CEP não encontrado",
+        description: "Verifique o CEP digitado e tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCnpjSearch = async () => {
+    const cpfCnpj = form.getValues("cpf_cnpj");
+    const cleanValue = cpfCnpj.replace(/\D/g, "");
+    
+    // Only search if it's a CNPJ (14 digits)
+    if (cleanValue.length !== 14) {
+      toast({
+        title: "CNPJ inválido",
+        description: "Digite um CNPJ válido com 14 dígitos para buscar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingCnpj(true);
+    const data = await fetchCnpj(cpfCnpj);
+    setIsLoadingCnpj(false);
+
+    if (data) {
+      form.setValue("name", data.razao_social || data.nome_fantasia);
+      form.setValue("email", data.email || form.getValues("email"));
+      if (data.telefone) {
+        form.setValue("phone", maskPhone(data.telefone));
+      }
+      if (data.cep) {
+        form.setValue("cep", formatCep(data.cep));
+      }
+      const endereco = [
+        data.logradouro,
+        data.numero,
+        data.complemento,
+        data.bairro,
+        `${data.municipio} - ${data.uf}`,
+        data.cep,
+      ].filter(Boolean).join(", ");
+      form.setValue("endereco", endereco);
+      
+      toast({
+        title: "CNPJ encontrado!",
+        description: `Dados de ${data.nome_fantasia || data.razao_social} preenchidos.`,
+      });
+    } else {
+      toast({
+        title: "CNPJ não encontrado",
+        description: "Verifique o CNPJ digitado e tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -118,10 +204,48 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
+                name="cpf_cnpj"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel className="text-foreground">CPF/CNPJ *</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                          className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                          value={field.value}
+                          onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCnpjSearch}
+                        disabled={isLoadingCnpj}
+                        title="Buscar dados do CNPJ"
+                      >
+                        {isLoadingCnpj ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Para CNPJ, clique na lupa para preencher automaticamente
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel className="text-foreground">Nome *</FormLabel>
+                    <FormLabel className="text-foreground">Nome / Razão Social *</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Digite o nome do cliente"
@@ -174,7 +298,7 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
                 name="rg"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground">RG *</FormLabel>
+                    <FormLabel className="text-foreground">RG</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Digite o RG"
@@ -188,16 +312,15 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
               />
               <FormField
                 control={form.control}
-                name="cpf_cnpj"
+                name="inscricao_estadual"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground">CPF/CNPJ *</FormLabel>
+                    <FormLabel className="text-foreground">Inscrição Estadual</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="000.000.000-00"
+                        placeholder="Digite a IE (opcional)"
                         className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                        value={field.value}
-                        onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -206,17 +329,34 @@ const NewClientDialog = ({ onSubmit, isSubmitting }: NewClientDialogProps) => {
               />
               <FormField
                 control={form.control}
-                name="inscricao_estadual"
+                name="cep"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel className="text-foreground">Inscrição Estadual (IE)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Digite a IE (opcional)"
-                        className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
-                        {...field}
-                      />
-                    </FormControl>
+                    <FormLabel className="text-foreground">CEP</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          placeholder="00000-000"
+                          className="border-input bg-background transition-all focus:ring-2 focus:ring-primary/20"
+                          value={field.value}
+                          onChange={(e) => field.onChange(formatCep(e.target.value))}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCepSearch}
+                        disabled={isLoadingCep}
+                        title="Buscar endereço pelo CEP"
+                      >
+                        {isLoadingCep ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
