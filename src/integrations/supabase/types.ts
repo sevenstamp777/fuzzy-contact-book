@@ -22,6 +22,7 @@ export type Database = {
           endereco: string | null
           id: string
           inscricao_estadual: string | null
+          is_demo: boolean | null
           name: string
           phone: string
           rg: string | null
@@ -35,6 +36,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           inscricao_estadual?: string | null
+          is_demo?: boolean | null
           name: string
           phone: string
           rg?: string | null
@@ -48,6 +50,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           inscricao_estadual?: string | null
+          is_demo?: boolean | null
           name?: string
           phone?: string
           rg?: string | null
@@ -136,6 +139,7 @@ export type Database = {
           estoque_minimo: number
           fornecedor_id: string | null
           id: string
+          is_demo: boolean | null
           nome: string
           preco_compra: number
           quantidade_embalagem: number
@@ -150,6 +154,7 @@ export type Database = {
           estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
+          is_demo?: boolean | null
           nome: string
           preco_compra?: number
           quantidade_embalagem?: number
@@ -164,6 +169,7 @@ export type Database = {
           estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
+          is_demo?: boolean | null
           nome?: string
           preco_compra?: number
           quantidade_embalagem?: number
@@ -481,6 +487,7 @@ export type Database = {
           created_at: string
           descricao: string | null
           id: string
+          is_demo: boolean | null
           margem_lucro: number
           nome: string
           updated_at: string
@@ -491,6 +498,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          is_demo?: boolean | null
           margem_lucro?: number
           nome: string
           updated_at?: string
@@ -501,6 +509,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          is_demo?: boolean | null
           margem_lucro?: number
           nome?: string
           updated_at?: string
@@ -512,6 +521,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          demo_loaded: boolean | null
           id: string
           name: string | null
           updated_at: string
@@ -520,6 +530,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          demo_loaded?: boolean | null
           id?: string
           name?: string | null
           updated_at?: string
@@ -528,6 +539,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          demo_loaded?: boolean | null
           id?: string
           name?: string | null
           updated_at?: string
@@ -579,6 +591,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          is_demo: boolean | null
           nome_contato: string
           nome_fornecedor: string
           updated_at: string
@@ -588,6 +601,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          is_demo?: boolean | null
           nome_contato: string
           nome_fornecedor: string
           updated_at?: string
@@ -597,6 +611,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          is_demo?: boolean | null
           nome_contato?: string
           nome_fornecedor?: string
           updated_at?: string

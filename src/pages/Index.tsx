@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useDemo } from "@/hooks/useDemo";
 import Header from "@/components/Header";
 import ClientsTable from "@/components/ClientsTable";
 import NewClientDialog from "@/components/NewClientDialog";
@@ -13,6 +14,8 @@ import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import ImportCSVDialog from "@/components/ImportCSVDialog";
+import DemoBanner from "@/components/DemoBanner";
+import LoadDemoPrompt from "@/components/LoadDemoPrompt";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { exportToCSV } from "@/lib/export";
@@ -36,6 +39,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { limits, canCreateCliente, plan } = useSubscription();
+  const { isDemoMode, hasDemoData, isLoadingDemo, loadDemoData, clearDemoData, checkDemoStatus } = useDemo();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -451,6 +455,18 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Demo mode banner */}
+        {isDemoMode && (
+          <DemoBanner 
+            onClearDemo={async () => {
+              await clearDemoData();
+              await fetchClients();
+              await checkDemoStatus();
+            }} 
+            isClearing={isLoadingDemo} 
+          />
+        )}
+
         {/* Plan limit alert */}
         {!canCreate && (
           <Alert className="mb-4 border-destructive bg-destructive/10">
@@ -467,13 +483,25 @@ const Index = () => {
         )}
 
         {/* Usage indicator */}
-        {limits.clientes !== -1 && canCreate && (
+        {limits.clientes !== -1 && canCreate && !isDemoMode && (
           <Alert className="mb-4 border-muted">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Você tem {clients.length} de {limits.clientes} clientes cadastrados no plano {plan}.
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Load demo prompt for empty state */}
+        {!isLoading && clients.length === 0 && !hasDemoData && (
+          <LoadDemoPrompt 
+            onLoadDemo={async () => {
+              await loadDemoData();
+              await fetchClients();
+            }} 
+            isLoading={isLoadingDemo}
+            entityName="clientes, fornecedores, insumos e produtos"
+          />
         )}
 
         <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
