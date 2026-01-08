@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/hooks/useDemo";
-import Header from "@/components/Header";
+
 import SuppliersTable from "@/components/SuppliersTable";
 import NewSupplierDialog from "@/components/NewSupplierDialog";
 import EditSupplierDialog from "@/components/EditSupplierDialog";
@@ -325,8 +325,7 @@ const Suppliers = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <main className="container py-8">
       
       <main className="container py-8">
         <div className="mb-8 animate-fade-in">
@@ -448,7 +447,7 @@ const Suppliers = () => {
         description={`Tem certeza que deseja excluir o fornecedor "${deletingSupplier?.nome_fornecedor}"? Esta ação não pode ser desfeita.`}
         isDeleting={isDeleting}
       />
-    </div>
+    </main>
   );
 };
 

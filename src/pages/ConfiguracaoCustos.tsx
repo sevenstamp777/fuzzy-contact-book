@@ -3,7 +3,7 @@ import { Settings, Plus, Trash2, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -259,37 +259,31 @@ const ConfiguracaoCustos = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container py-8">
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </main>
-      </div>
+      <main className="container py-8">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg gradient-primary shadow-glow">
-              <Settings className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
-                Configuração de Custos
-              </h2>
-              <p className="mt-1 text-muted-foreground">
-                Configure seu custo hora e despesas fixas para precificação.
-              </p>
-            </div>
+    <main className="container py-8">
+      <div className="mb-8 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg gradient-primary shadow-glow">
+            <Settings className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+              Configuração de Custos
+            </h2>
+            <p className="mt-1 text-muted-foreground">
+              Configure seu custo hora e despesas fixas para precificação.
+            </p>
           </div>
         </div>
+      </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Custo Hora */}
@@ -470,8 +464,7 @@ const ConfiguracaoCustos = () => {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </main>
   );
 };
 

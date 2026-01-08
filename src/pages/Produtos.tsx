@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/hooks/useDemo";
-import Header from "@/components/Header";
+
 import ProdutosTable from "@/components/ProdutosTable";
 import NewProdutoDialog from "@/components/NewProdutoDialog";
 import EditProdutoDialog from "@/components/EditProdutoDialog";
@@ -466,10 +466,7 @@ const Produtos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-8 animate-fade-in">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -642,8 +639,7 @@ const Produtos = () => {
           title="Remover Produto"
           description={`Tem certeza que deseja remover "${deletingProduto?.nome}"? Esta ação não pode ser desfeita.`}
         />
-      </main>
-    </div>
+    </main>
   );
 };
 

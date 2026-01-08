@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useDemo } from "@/hooks/useDemo";
-import Header from "@/components/Header";
+
 import ClientsTable from "@/components/ClientsTable";
 import NewClientDialog from "@/components/NewClientDialog";
 import EditClientDialog from "@/components/EditClientDialog";
@@ -417,8 +417,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <main className="container py-8">
       
       <main className="container py-8">
         <div className="mb-8 animate-fade-in">
@@ -564,7 +563,7 @@ const Index = () => {
         description={`Tem certeza que deseja excluir o cliente "${deletingClient?.name}"? Esta ação não pode ser desfeita.`}
         isDeleting={isDeleting}
       />
-    </div>
+    </main>
   );
 };
 

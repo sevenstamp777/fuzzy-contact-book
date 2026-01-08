@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Users, Truck, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, AlertTriangle, Package, Factory, DollarSign, ShoppingCart, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
+
 import UpgradeBanner from "@/components/UpgradeBanner";
 import OnboardingGuide from "@/components/OnboardingGuide";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -322,10 +322,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-6 animate-fade-in">
           <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
             Dashboard
@@ -566,8 +563,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </main>
   );
 };
 

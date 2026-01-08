@@ -3,7 +3,7 @@ import { Box, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
+
 import SearchInput from "@/components/SearchInput";
 import TablePagination from "@/components/TablePagination";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
@@ -292,10 +292,7 @@ const ProdutosBase = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-8">
+    <main className="container py-8">
         <div className="mb-8 animate-fade-in">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -367,7 +364,6 @@ const ProdutosBase = () => {
             </div>
           )}
         </div>
-      </main>
 
       <EditProdutoBaseDialog
         produto={editingProduto}
@@ -386,7 +382,7 @@ const ProdutosBase = () => {
         description={`Tem certeza que deseja excluir o produto base "${deletingProduto?.nome}"? Esta ação não pode ser desfeita.`}
         isDeleting={isDeleting}
       />
-    </div>
+    </main>
   );
 };
 
