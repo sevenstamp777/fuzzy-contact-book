@@ -712,32 +712,41 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          cnpj: string | null
           created_at: string
           email: string
+          endereco: string | null
           id: string
           is_demo: boolean | null
           nome_contato: string
           nome_fornecedor: string
+          telefone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          cnpj?: string | null
           created_at?: string
           email: string
+          endereco?: string | null
           id?: string
           is_demo?: boolean | null
           nome_contato: string
           nome_fornecedor: string
+          telefone?: string | null
           updated_at?: string
           user_id?: string
         }
         Update: {
+          cnpj?: string | null
           created_at?: string
           email?: string
+          endereco?: string | null
           id?: string
           is_demo?: boolean | null
           nome_contato?: string
           nome_fornecedor?: string
+          telefone?: string | null
           updated_at?: string
           user_id?: string
         }
