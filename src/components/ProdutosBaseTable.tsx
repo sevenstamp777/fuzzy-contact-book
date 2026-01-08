@@ -10,24 +10,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import SortableTableHead, { SortDirection } from "@/components/SortableTableHead";
-import { Insumo } from "@/pages/Insumos";
+import { ProdutoBase } from "@/pages/ProdutosBase";
 
-interface InsumosTableProps {
-  insumos: Insumo[];
+interface ProdutosBaseTableProps {
+  produtos: ProdutoBase[];
   isLoading: boolean;
-  onEdit: (insumo: Insumo) => void;
-  onDelete: (insumo: Insumo) => void;
+  onEdit: (produto: ProdutoBase) => void;
+  onDelete: (produto: ProdutoBase) => void;
   sortKey: string | null;
   sortDirection: SortDirection;
   onSort: (key: string) => void;
 }
-
-const UNIDADE_LABELS: Record<string, string> = {
-  un: "un",
-  kg: "kg",
-  ml: "ml",
-  m: "m",
-};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -36,15 +29,15 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-const InsumosTable = ({
-  insumos,
+const ProdutosBaseTable = ({
+  produtos,
   isLoading,
   onEdit,
   onDelete,
   sortKey,
   sortDirection,
   onSort,
-}: InsumosTableProps) => {
+}: ProdutosBaseTableProps) => {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border bg-card shadow-elegant overflow-hidden">
@@ -52,12 +45,9 @@ const InsumosTable = ({
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="font-semibold text-foreground">Nome</TableHead>
-              <TableHead className="font-semibold text-foreground">Unidade</TableHead>
+              <TableHead className="font-semibold text-foreground">Categoria</TableHead>
               <TableHead className="font-semibold text-foreground">Fornecedor</TableHead>
-              <TableHead className="font-semibold text-foreground text-right">Preço Compra</TableHead>
-              <TableHead className="font-semibold text-foreground text-right">Qtd. Emb.</TableHead>
-              <TableHead className="font-semibold text-foreground text-right">Usos/Un</TableHead>
-              <TableHead className="font-semibold text-foreground text-right">Custo/Uso</TableHead>
+              <TableHead className="font-semibold text-foreground text-right">Custo Aquisição</TableHead>
               <TableHead className="w-24 text-center font-semibold text-foreground">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -65,11 +55,8 @@ const InsumosTable = ({
             {Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
                 <TableCell><Skeleton className="h-8 w-20 mx-auto" /></TableCell>
               </TableRow>
@@ -80,17 +67,17 @@ const InsumosTable = ({
     );
   }
 
-  if (insumos.length === 0) {
+  if (produtos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-16 text-center shadow-elegant">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <span className="text-3xl">📦</span>
         </div>
         <h3 className="mb-2 text-lg font-semibold text-foreground">
-          Nenhum insumo encontrado
+          Nenhum produto base encontrado
         </h3>
         <p className="text-muted-foreground">
-          Comece cadastrando seu primeiro insumo.
+          Comece cadastrando canecas, camisetas, chaveiros, etc.
         </p>
       </div>
     );
@@ -110,12 +97,12 @@ const InsumosTable = ({
               Nome
             </SortableTableHead>
             <SortableTableHead
-              sortKey="unidade_medida"
+              sortKey="categoria"
               currentSortKey={sortKey}
               currentSortDirection={sortDirection}
               onSort={onSort}
             >
-              Unidade
+              Categoria
             </SortableTableHead>
             <SortableTableHead
               sortKey="fornecedor"
@@ -126,40 +113,13 @@ const InsumosTable = ({
               Fornecedor
             </SortableTableHead>
             <SortableTableHead
-              sortKey="preco_compra"
+              sortKey="custo_aquisicao"
               currentSortKey={sortKey}
               currentSortDirection={sortDirection}
               onSort={onSort}
               className="text-right"
             >
-              Preço Compra
-            </SortableTableHead>
-            <SortableTableHead
-              sortKey="quantidade_embalagem"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={onSort}
-              className="text-right"
-            >
-              Qtd. Embalagem
-            </SortableTableHead>
-            <SortableTableHead
-              sortKey="usos_por_unidade"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={onSort}
-              className="text-right"
-            >
-              Usos/Un
-            </SortableTableHead>
-            <SortableTableHead
-              sortKey="custo_por_uso"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={onSort}
-              className="text-right"
-            >
-              Custo/Uso
+              Custo Aquisição
             </SortableTableHead>
             <TableHead className="w-24 text-center font-semibold text-foreground">
               Ações
@@ -167,35 +127,22 @@ const InsumosTable = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {insumos.map((insumo) => {
-            const custoPorUso = Number(insumo.usos_por_unidade) > 0 
-              ? Number(insumo.custo_unitario) / Number(insumo.usos_por_unidade) 
-              : Number(insumo.custo_unitario);
-            return (
+          {produtos.map((produto) => (
             <TableRow
-              key={insumo.id}
+              key={produto.id}
               className="transition-colors hover:bg-muted/30"
             >
               <TableCell className="font-medium text-foreground">
-                {insumo.nome}
+                {produto.nome}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {UNIDADE_LABELS[insumo.unidade_medida]}
+                {produto.categoria || "-"}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {insumo.fornecedor?.nome_fornecedor || "-"}
-              </TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                {formatCurrency(Number(insumo.preco_compra))}
-              </TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                {Number(insumo.quantidade_embalagem).toLocaleString("pt-BR")}
-              </TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                {Number(insumo.usos_por_unidade || 1)}
+                {produto.fornecedor?.nome_fornecedor || "-"}
               </TableCell>
               <TableCell className="text-right font-medium text-primary">
-                {formatCurrency(custoPorUso)}
+                {formatCurrency(Number(produto.custo_aquisicao))}
               </TableCell>
               <TableCell>
                 <div className="flex items-center justify-center gap-1">
@@ -203,7 +150,7 @@ const InsumosTable = ({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    onClick={() => onEdit(insumo)}
+                    onClick={() => onEdit(produto)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -211,19 +158,18 @@ const InsumosTable = ({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => onDelete(insumo)}
+                    onClick={() => onDelete(produto)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
             </TableRow>
-          );
-          })}
+          ))}
         </TableBody>
       </Table>
     </div>
   );
 };
 
-export default InsumosTable;
+export default ProdutosBaseTable;

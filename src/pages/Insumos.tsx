@@ -26,6 +26,7 @@ export interface Insumo {
   preco_compra: number;
   quantidade_embalagem: number;
   custo_unitario: number;
+  usos_por_unidade: number;
   quantidade_estoque: number;
   estoque_minimo: number;
   fornecedor?: { nome_fornecedor: string } | null;
@@ -76,7 +77,7 @@ const Insumos = () => {
       const { data, error } = await supabase
         .from("insumos")
         .select(`
-          id, nome, unidade_medida, fornecedor_id, preco_compra, quantidade_embalagem, custo_unitario, quantidade_estoque, estoque_minimo,
+          id, nome, unidade_medida, fornecedor_id, preco_compra, quantidade_embalagem, custo_unitario, usos_por_unidade, quantidade_estoque, estoque_minimo,
           fornecedor:suppliers(nome_fornecedor)
         `)
         .eq("user_id", user.id)
@@ -185,6 +186,8 @@ const Insumos = () => {
       preco_compra: i.preco_compra,
       quantidade_embalagem: i.quantidade_embalagem,
       custo_unitario: i.custo_unitario,
+      usos_por_unidade: i.usos_por_unidade,
+      custo_por_uso: i.usos_por_unidade > 0 ? i.custo_unitario / i.usos_por_unidade : i.custo_unitario,
     }));
     exportToCSV(exportData, "insumos", [
       { key: "nome", label: "Nome" },
@@ -193,6 +196,8 @@ const Insumos = () => {
       { key: "preco_compra", label: "Preço de Compra" },
       { key: "quantidade_embalagem", label: "Qtd. na Embalagem" },
       { key: "custo_unitario", label: "Custo Unitário" },
+      { key: "usos_por_unidade", label: "Usos por Unidade" },
+      { key: "custo_por_uso", label: "Custo por Uso" },
     ]);
     toast({
       title: "Exportação concluída!",
@@ -275,6 +280,7 @@ const Insumos = () => {
     preco_compra: number;
     quantidade_embalagem: number;
     estoque_minimo: number;
+    usos_por_unidade: number;
   }) => {
     setIsSubmitting(true);
     try {
@@ -313,6 +319,7 @@ const Insumos = () => {
       preco_compra: number;
       quantidade_embalagem: number;
       estoque_minimo: number;
+      usos_por_unidade: number;
     }
   ) => {
     setIsSubmitting(true);

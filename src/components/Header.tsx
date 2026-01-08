@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag, Warehouse, Factory, BarChart3, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
+import { Users, Truck, LayoutDashboard, LogOut, User, Package, ShoppingBag, Warehouse, Factory, BarChart3, ShoppingCart, DollarSign, CreditCard, Box, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavLink from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -97,8 +97,14 @@ const Header = () => {
             <NavLink to="/estoque" icon={<Warehouse className="h-4 w-4" />}>
               Estoque
             </NavLink>
+            <NavLink to="/produtos-base" icon={<Box className="h-4 w-4" />}>
+              Prod. Base
+            </NavLink>
             <NavLink to="/produtos" icon={<ShoppingBag className="h-4 w-4" />}>
               Produtos
+            </NavLink>
+            <NavLink to="/custos" icon={<Settings className="h-4 w-4" />}>
+              Custos
             </NavLink>
             <NavLink to="/ordens-producao" icon={<Factory className="h-4 w-4" />}>
               Produção
